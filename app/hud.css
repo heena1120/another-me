@@ -1,0 +1,539 @@
+/* ═════ 홈: 포켓몬GO식 HUD ═════ */
+.page.home {
+  max-width: 520px;
+  padding: 10px 10px 28px;
+}
+
+.hero {
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  min-height: 620px;
+  box-shadow: 0 12px 34px #5a454522;
+}
+
+.hero.loading {
+  background: #f4efe9;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  color: var(--muted);
+}
+
+.hud {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  pointer-events: none; /* 캐릭터를 직접 눌러 폴짝 뛰게 하려고 */
+}
+
+.hud > * {
+  pointer-events: auto;
+}
+
+.hud-top {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.lvl {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  filter: drop-shadow(0 3px 6px #5a454533);
+}
+
+.lvl svg {
+  width: 100%;
+  height: 100%;
+}
+
+.lvl span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  font-weight: 900;
+  font-size: 22px;
+  line-height: 1;
+  color: #3b2f2f;
+}
+
+.lvl small {
+  font-size: 9px;
+  font-weight: 800;
+  color: #e0507d;
+}
+
+.score {
+  justify-self: center;
+  display: grid;
+  justify-items: center;
+  background: #ffffffee;
+  border: 2px solid #5a4545;
+  border-radius: 18px;
+  padding: 4px 20px 6px;
+  box-shadow: 0 4px 0 #5a4545;
+}
+
+.score small {
+  font-size: 10px;
+  font-weight: 800;
+  color: #8a7a7a;
+}
+
+.score strong {
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.streak {
+  background: #ffffffee;
+  border: 2px solid #5a4545;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.hud-bubble {
+  align-self: center;
+  margin-top: 10px;
+  max-width: 92%;
+  background: #fff;
+  border: 2px solid #5a4545;
+  border-radius: 18px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.future-chip {
+  align-self: flex-end;
+  margin-top: 8px;
+  background: linear-gradient(135deg, #ff7aa0, #ffb06a);
+  color: #fff;
+  border: 2px solid #5a4545;
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 3px 0 #5a4545;
+}
+
+.future-chip b {
+  font-size: 17px;
+}
+
+.hud-bottom {
+  margin-top: auto;
+  display: grid;
+  gap: 10px;
+}
+
+.hud-cta {
+  justify-self: center;
+}
+
+.hud-note {
+  background: #ffffffdd;
+  border-radius: 14px;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.train-card {
+  background: #ffffffee;
+  border-radius: 16px;
+  padding: 8px 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.train-card small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.tray {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.quest {
+  position: relative;
+  width: 82px;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 8px 4px 7px;
+  background: #ffffffee;
+  border: 2px solid #5a4545;
+  border-radius: 20px;
+  box-shadow: 0 4px 0 #5a4545;
+  color: var(--ink);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.quest:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #5a4545;
+}
+
+.quest.done {
+  background: #e6f8ec;
+  border-color: #2f8a55;
+  box-shadow: 0 4px 0 #2f8a55;
+}
+
+.quest-icon {
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.quest-name {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.quest-pts {
+  font-size: 11px;
+  font-weight: 800;
+  color: #e0507d;
+}
+
+.quest.done .quest-pts {
+  color: #2f8a55;
+}
+
+.hud-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hud-link {
+  background: #ffffffdd;
+  border: 2px solid #5a4545;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hud-link.strong {
+  background: #ff7aa0;
+  color: #fff;
+}
+
+.foot-links {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pops {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 46%;
+  display: grid;
+  justify-items: center;
+  pointer-events: none;
+}
+
+.pop {
+  grid-area: 1 / 1;
+  font-size: 40px;
+  font-weight: 900;
+  color: #ff5c8a;
+  text-shadow: 0 3px 0 #fff, 0 0 12px #fff;
+  animation: pop 1.1s ease-out forwards;
+}
+
+@keyframes pop {
+  0% {
+    transform: translateY(20px) scale(0.5);
+    opacity: 0;
+  }
+  25% {
+    transform: translateY(0) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-90px) scale(1);
+    opacity: 0;
+  }
+}
+
+/* ───── 레벨업 연출 ───── */
+.levelup {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: start center;
+  padding-top: 76px;
+  pointer-events: none;
+}
+
+.levelup-banner {
+  display: grid;
+  justify-items: center;
+  background: linear-gradient(135deg, #ffd35c, #ff7aa0);
+  border: 3px solid #5a4545;
+  border-radius: 24px;
+  padding: 8px 30px 10px;
+  box-shadow: 0 6px 0 #5a4545;
+  animation: banner 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.levelup-banner small {
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #fff;
+  text-shadow: 0 2px 0 #5a4545;
+}
+
+.levelup-banner strong {
+  font-size: 44px;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 3px 0 #5a4545;
+}
+
+@keyframes banner {
+  from {
+    transform: scale(0.2) rotate(-8deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+
+.confetti {
+  position: absolute;
+  top: -20px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  animation: fall linear infinite;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(620px) rotate(540deg);
+  }
+}
+
+/* ═════ 5년 뒤의 나 (Future Mirror) ═════ */
+.page-head.compact {
+  margin-bottom: 14px;
+}
+
+.page-head.compact h1 {
+  font-size: 22px;
+}
+
+.mirror {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mirror-side {
+  display: grid;
+  gap: 6px;
+  justify-items: stretch;
+  align-content: start;
+}
+
+.mirror-tag {
+  justify-self: center;
+  font-size: 12px;
+  font-weight: 800;
+  background: #fff;
+  border: 2px solid #9aa3b5;
+  border-radius: 999px;
+  padding: 3px 12px;
+  color: #6c7488;
+}
+
+.mirror-side.good .mirror-tag {
+  border-color: #ff5c8a;
+  color: #e0507d;
+}
+
+.mirror-score {
+  justify-self: center;
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: -1px;
+  color: #7c8497;
+}
+
+.mirror-side.good .mirror-score {
+  color: #e0507d;
+}
+
+.time-card input[type='range'] {
+  width: 100%;
+  height: 34px;
+  accent-color: #ff5c8a;
+}
+
+.bignums {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.bignums > div {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  text-align: center;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 20px;
+  padding: 14px 6px;
+}
+
+.bignums strong {
+  font-size: 26px;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.bignums .up strong {
+  color: #2f8a55;
+}
+
+.bignums small {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.chip.static {
+  cursor: default;
+  background: #fff8fa;
+}
+
+.ask summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.ask[open] summary {
+  margin-bottom: 12px;
+}
+
+/* ═════ 분석(딥러닝 근거) ═════ */
+.hero-ai .neural {
+  width: 100%;
+  height: auto;
+  background: #fff9fb;
+  border-radius: 18px;
+}
+
+.node {
+  animation: breathe 2.8s ease-in-out infinite;
+}
+
+.out-node {
+  animation: beat 1.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes breathe {
+  50% {
+    stroke-opacity: 0.35;
+  }
+}
+
+@keyframes beat {
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+}
+
+.stats strong {
+  display: block;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.stats small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.patterns {
+  display: grid;
+  gap: 18px;
+}
+
+.pattern h3 {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.curve {
+  width: 100%;
+  height: 110px;
+  background: #fff9fb;
+  border-radius: 14px;
+}
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.dot.pink {
+  background: #ff5c8a;
+}
+
+.dot.blue {
+  background: #5aa0ff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node,
+  .out-node,
+  .confetti,
+  .pop,
+  .levelup-banner {
+    animation: none;
+  }
+}

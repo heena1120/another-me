@@ -1,0 +1,369 @@
+/* ═════ 모바일 우선 레이아웃 (다른 CSS 뒤에 불러와서 덮어씁니다) ═════ */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  /* 하단 탭바 + 아이폰 홈 인디케이터 영역만큼 비웁니다 */
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  overscroll-behavior-y: none;
+}
+
+button,
+a,
+input,
+summary,
+label {
+  touch-action: manipulation;
+}
+
+/* 휴대폰 화면 폭의 한 칼럼. 큰 화면에서도 가운데에 휴대폰처럼 보입니다. */
+.page,
+.page.wide,
+.page.home {
+  max-width: 480px;
+  padding: 12px 12px 24px;
+}
+
+.page-head {
+  margin-bottom: 14px;
+}
+
+.page-head h1 {
+  font-size: 22px;
+}
+
+/* ───── 하단 탭바 ───── */
+.nav {
+  position: fixed;
+  top: auto;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+  background: #fffdfbf2;
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.nav a {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 6px 4px;
+  min-height: 52px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.nav-icon {
+  font-size: 22px;
+  line-height: 1.1;
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.nav a[aria-current='page'] {
+  background: #fff1f5;
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.nav a[aria-current='page'] .nav-icon {
+  filter: none;
+  opacity: 1;
+}
+
+/* ───── 홈: 화면 높이에 맞춘 히어로 ───── */
+.hero {
+  height: min(calc(100dvh - 190px), 640px);
+  min-height: 460px;
+}
+
+.hero > div:first-child {
+  height: 100%;
+}
+
+/* ───── 캐릭터 만들기: 항상 한 칼럼 ───── */
+.creator {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.preview {
+  position: static;
+}
+
+/* ───── 손가락으로 누르기 편한 크기 ───── */
+.chip,
+.mini,
+.opt,
+.btn,
+.tab,
+.hud-link {
+  min-height: 44px;
+}
+
+.chip.swatch {
+  width: 44px;
+  height: 44px;
+}
+
+.field input[type='range'],
+.time-card input[type='range'] {
+  height: 44px;
+}
+
+.toggle {
+  min-height: 44px;
+}
+
+.toggle input,
+.checklist input,
+.explore-item input {
+  width: 24px;
+  height: 24px;
+}
+
+.composer input {
+  font-size: 16px; /* iOS가 입력창을 확대하지 않도록 */
+}
+
+.name-field input {
+  font-size: 16px;
+}
+
+/* 아주 좁은 화면 */
+@media (max-width: 360px) {
+  .quest {
+    width: 74px;
+  }
+  .score strong {
+    font-size: 30px;
+  }
+}
+
+/* ───── 홈 HUD 보강 ───── */
+.hud-top .spacer {
+  width: 64px;
+}
+
+.score .lvname {
+  font-size: 12px;
+  color: #e0507d;
+}
+
+.quest.hint {
+  border-color: #ff5c8a;
+  box-shadow: 0 4px 0 #ff5c8a, 0 0 0 3px #ff5c8a44;
+  animation: hint 1.4s ease-in-out infinite;
+}
+
+@keyframes hint {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.quest-pts {
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quest.hint {
+    animation: none;
+  }
+}
+
+/* ───── 5년 뒤: 완벽한 나까지의 여정 ───── */
+.goal {
+  background: linear-gradient(135deg, #fff4d6, #ffe3ec);
+  border: 2px solid #5a4545;
+  border-radius: 24px;
+  padding: 14px 16px 12px;
+  box-shadow: 0 5px 0 #5a4545;
+  display: grid;
+  gap: 10px;
+}
+
+.goal-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-weight: 800;
+}
+
+.goal-head strong {
+  font-size: 34px;
+  line-height: 1;
+  color: #e0507d;
+  letter-spacing: -1px;
+}
+
+.journey {
+  position: relative;
+  height: 16px;
+  background: #fff;
+  border: 2px solid #5a4545;
+  border-radius: 999px;
+  margin-right: 26px;
+}
+
+.journey i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+}
+
+.j-now {
+  left: 0;
+  background: #9aa3b5;
+}
+
+.j-gain {
+  background: repeating-linear-gradient(45deg, #ff5c8a, #ff5c8a 6px, #ff8fb0 6px, #ff8fb0 12px);
+}
+
+.j-dot {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid #5a4545;
+  background: #fff;
+  transform: translate(-50%, -50%);
+}
+
+.j-dot.goal5 {
+  background: #ff5c8a;
+}
+
+.j-end {
+  position: absolute;
+  right: -30px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 22px;
+}
+
+.goal-note {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.road-title {
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.road {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.road li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #fff8fa;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.road b {
+  color: #e0507d;
+}
+
+/* ───── 분석: 과 연계 ───── */
+.dept {
+  display: grid;
+  gap: 10px;
+}
+
+.dept-item {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  background: #fff8fa;
+  border-radius: 16px;
+  border-left: 5px solid #ff5c8a;
+}
+
+.dept-item.soon {
+  border-left-color: #b8b2bd;
+  background: #f7f5f8;
+}
+
+.dept-item strong {
+  font-size: 14px;
+}
+
+.dept-item p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.accept {
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.accept li {
+  display: grid;
+  grid-template-columns: 5.5em 1fr 3em;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.accept .wbar i {
+  background: #5aa0ff;
+}
+
+.accept b {
+  text-align: right;
+}
+
+/* ───── 좁은 화면에서 넘치지 않게 ───── */
+.flat-stage svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.mirror,
+.bignums {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bignums {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.mirror-side,
+.bignums > div,
+.card,
+.goal {
+  min-width: 0;
+}
+
+.bignums strong {
+  font-size: clamp(18px, 6vw, 26px);
+  white-space: nowrap;
+}
