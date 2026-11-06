@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { nextQuestion, toProfile, type Answers } from '@/lib/twin-data';
+import { nextQuestion, toProfile, type Answers, type Profile } from '@/lib/twin-data';
 import { twinActions } from '@/lib/twin-store';
 
-export default function Interview() {
+export default function Interview({ seed, onDone }: { seed?: Answers; onDone?: (profile: Profile) => void } = {}) {
   const router = useRouter();
-  const [answers, setAnswers] = useState<Answers>({});
+  const [answers, setAnswers] = useState<Answers>(seed ?? {});
   const [order, setOrder] = useState<string[]>([]); // 답한 순서 (되돌아가기용)
 
   const q = nextQuestion(answers);
@@ -18,8 +18,11 @@ export default function Interview() {
     const next = { ...answers, [q.id]: id };
     const profile = toProfile(next);
     if (profile) {
-      twinActions.saveProfile(profile);
-      router.push('/');
+      if (onDone) onDone(profile);
+      else {
+        twinActions.saveProfile(profile);
+        router.push('/');
+      }
       return;
     }
     setAnswers(next);

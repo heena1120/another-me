@@ -122,7 +122,7 @@ function Character({ avatar, mood, dance, vitality }: { avatar: Avatar; mood: Mo
   const slump = (1 - v) * 0.26; // 생기가 낮을수록 앞으로 구부정
   const g = SHAPE[avatar.shape];
   const { a, b, c } = g;
-  const body = mixHex(BODY_COLORS.find(x => x.id === avatar.body)?.value ?? '#ffffff', '#aaa3b0', (1 - v) * 0.7); // 생기가 낮으면 색이 바랩니다
+  const body = mixHex(BODY_COLORS.find(x => x.id === avatar.body)?.value ?? '#ffffff', '#aaa3b0', (1 - v) * 0.45); // 생기가 낮으면 색이 바랩니다
   const outfitColor = OUTFIT_COLORS.find(x => x.id === avatar.outfitColor)?.value ?? '#ff8fa8';
   const blush = BLUSHES.find(x => x.id === avatar.blush)?.value ?? '';
   const earInner = '#ffc2d2';
@@ -584,7 +584,7 @@ type Props = { avatar: Avatar; mood?: Mood; className?: string; height?: number 
 
 export default function TwinAvatar3D({ avatar, mood = 'normal', className, height = 340, dance = false, vitality = 1, lift = 0, distance = 7.7 }: Props) {
   const [ready, setReady] = useState(false); // 첫 프레임이 그려지기 전에는 배경을 비워 둬서 2D 캐릭터가 보이게 합니다
-  const bg = mixHex(BACKGROUNDS.find(x => x.id === avatar.bg)?.value ?? '#e8f3ff', '#c3bdd0', (1 - Math.min(1, Math.max(0, vitality))) * 0.75); // 생기가 낮으면 배경이 황혼빛으로
+  const bg = mixHex(BACKGROUNDS.find(x => x.id === avatar.bg)?.value ?? '#e8f3ff', '#c3bdd0', (1 - Math.min(1, Math.max(0, vitality))) * 0.5); // 생기가 낮으면 배경이 황혼빛으로
   return (
     <div
       className={className}

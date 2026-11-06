@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { fileToJpeg, videoToJpeg } from '@/lib/image';
 import type { Avatar } from '@/lib/avatar';
-import { useAiEnabled } from '@/lib/use-ai-enabled';
+import { useAiStatus } from '@/lib/use-ai-enabled';
+import { twinActions } from '@/lib/twin-store';
 
 type Message = { kind: 'ok' | 'error'; text: string };
 
@@ -68,7 +69,8 @@ export default function PhotoAvatar({ onApply }: { onApply: (partial: Partial<Av
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<Message | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const aiEnabled = useAiEnabled();
+  const ai = useAiStatus();
+  const aiEnabled = ai === null ? null : ai.enabled;
 
   const take = (jpeg: string) => {
     setPhoto(jpeg);
@@ -101,7 +103,19 @@ export default function PhotoAvatar({ onApply }: { onApply: (partial: Partial<Av
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ image: photo }),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string; ok?: boolean; reason?: string; avatar?: Partial<Avatar> };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; code?: string; ok?: boolean; reason?: string; avatar?: Partial<Avatar>; meta?: { model?: string; ms?: number; promptVersion?: string } };
+      twinActions.addTrace({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        at: new Date().toISOString(),
+        kind: 'photo',
+        ok: res.ok && !data.error,
+        error: res.ok && !data.error ? undefined : (data.code ?? `http_${res.status}`),
+        model: data.meta?.model,
+        promptVersion: data.meta?.promptVersion,
+        ms: data.meta?.ms,
+        inputKinds: ['얼굴 사진 1장(저장하지 않음)'],
+        input: { note: '사진은 이 기기와 서버에 저장하지 않아요. 분석을 위해 OpenAI로 한 번 전송돼요.' },
+      });
       if (!res.ok || data.error) {
         setMessage({ kind: 'error', text: data.error ?? 'AI 분석에 실패했어요. 다시 시도해 주세요.' });
       } else if (!data.ok || !data.avatar) {
@@ -119,8 +133,14 @@ export default function PhotoAvatar({ onApply }: { onApply: (partial: Partial<Av
     }
   };
 
-  // AI 키가 설정되지 않았다면 이 기능은 보이지 않습니다. (확인 중일 때도 숨김)
-  if (!aiEnabled) return null;
+  // 확인 중에는 아무것도 보이지 않고, AI가 연결되지 않았다면 이유를 알려 주는 안내 한 줄만 보여 줍니다.
+  if (aiEnabled === null) return null;
+  if (!aiEnabled)
+    return (
+      <p className="photo-off" role="note">
+        <span aria-hidden="true">📷</span> 사진으로 만들기는 지금 쓸 수 없어요. (AI가 아직 연결되지 않았어요) 아래에서 직접 꾸며 보세요.
+      </p>
+    );
 
   return (
     <section className="photo-box" aria-label="사진으로 캐릭터 만들기">
@@ -144,8 +164,18 @@ export default function PhotoAvatar({ onApply }: { onApply: (partial: Partial<Av
           <img src={photo} alt="선택한 사진 미리보기" />
           <label className="toggle">
             <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} />
-            <span>이 사진을 AI(Claude)에 보내 캐릭터 설정을 만드는 데에만 쓰는 것에 동의해요. 사진은 저장되지 않아요.</span>
+            <span>이 사진을 OpenAI(AI)에 보내 캐릭터 꾸미기 옵션을 고르는 데에만 쓰는 것에 동의해요.</span>
           </label>
+          <details className="privacy">
+            <summary>사진은 어떻게 처리되나요?</summary>
+            <ul>
+              <li>사진은 이 기기에서 작게 줄여(긴 변 768px) 위치 정보 같은 메타데이터를 없앤 뒤 보내요.</li>
+              <li><b>외부 전송:</b> 분석을 위해 OpenAI로 한 번 전송돼요. 사진을 OpenAI에서 얼마나 보관하는지는 OpenAI의 데이터 정책을 따르며, 이 앱이 정할 수 없어요.</li>
+              <li><b>이 앱의 보관:</b> 서버와 브라우저에 사진을 저장하지 않아요. 분석이 끝나면 화면에서도 바로 지워요. (그래서 따로 삭제할 사진이 남지 않아요.)</li>
+              <li>안경·머리·옷·표정 같은 겉모습만 참고해요. 건강 상태나 피부·눈의 상태를 진단하거나 추정하지 않아요.</li>
+              <li>전송 기록(시각·모델·소요 시간, 사진 내용 제외)은 AI TRACE에서 볼 수 있어요.</li>
+            </ul>
+          </details>
           <div className="actions left">
             <button type="button" className="btn primary small" disabled={!consent || busy} onClick={analyze}>
               {busy ? '분석 중…' : '✨ AI로 내 캐릭터 만들기'}

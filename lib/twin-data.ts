@@ -1,6 +1,7 @@
 // 인터뷰 → 프로필 → 기준 습관 → what-if → 오늘의 체크리스트 → 점수·레벨
 // 모두 순수 함수라서 화면 없이도 동작을 검증할 수 있습니다.
 import { predict, type Raw, type TwinModel } from './twin-model';
+import type { Evidence, LifeClassId } from './ai-types';
 
 // ───────── 프로필(인터뷰 결과) ─────────
 export type Profile = {
@@ -13,6 +14,15 @@ export type Profile = {
   budget: '10' | '20' | '40' | '60';
   pref?: 'home' | 'gym' | 'outdoor' | 'none';
   goal: 'stamina' | 'sleep' | 'focus' | 'mood';
+  /** 하루 중 가장 피곤하거나 스트레스를 느끼는 때 */
+  energyTime?: 'morning' | 'afternoon' | 'evening' | 'night';
+  diet?: 'balanced' | 'uneven' | 'irregular' | 'skip';
+  /** 계획한 자기관리를 실천하는 정도 */
+  selfcare?: 'always' | 'half' | 'sometimes' | 'rarely';
+  /** 생활 변화를 받아들이는 정도 */
+  change?: 'bold' | 'gradual' | 'slow' | 'hard';
+  /** LIFE CLASS(되고 싶은 모습) */
+  lifeClass?: LifeClassId;
 };
 
 export type Answers = Partial<Record<keyof Profile, string>>;
@@ -93,6 +103,46 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
+    id: 'energyTime',
+    text: '하루 중 가장 피곤하거나 스트레스를 느끼는 때는 언제예요?',
+    options: [
+      { id: 'morning', label: '아침 (일어나고 한참 동안)' },
+      { id: 'afternoon', label: '점심 먹고 난 오후' },
+      { id: 'evening', label: '저녁·퇴근 후' },
+      { id: 'night', label: '밤늦게' },
+    ],
+  },
+  {
+    id: 'diet',
+    text: '식습관은 어떤 편이에요?',
+    options: [
+      { id: 'balanced', label: '규칙적이고 골고루 먹어요' },
+      { id: 'uneven', label: '규칙적이지만 한쪽에 치우쳐요' },
+      { id: 'irregular', label: '시간이 들쭉날쭉해요' },
+      { id: 'skip', label: '자주 거르거나 야식을 먹어요' },
+    ],
+  },
+  {
+    id: 'selfcare',
+    text: '계획한 자기관리를 얼마나 실천해요?',
+    options: [
+      { id: 'always', label: '거의 매번 해요' },
+      { id: 'half', label: '절반쯤 해요' },
+      { id: 'sometimes', label: '가끔 해요' },
+      { id: 'rarely', label: '거의 못 해요' },
+    ],
+  },
+  {
+    id: 'change',
+    text: '생활이 갑자기 바뀌는 것, 어떻게 받아들여요?',
+    options: [
+      { id: 'bold', label: '급하게 바뀌어도 괜찮아요' },
+      { id: 'gradual', label: '조금씩이면 괜찮아요' },
+      { id: 'slow', label: '아주 천천히만 가능해요' },
+      { id: 'hard', label: '변화 자체가 부담돼요' },
+    ],
+  },
+  {
     id: 'budget',
     text: '건강을 위해 하루에 낼 수 있는 시간은요?',
     hint: '체크리스트가 이 시간 안에 끝나도록 만들어요.',
@@ -157,7 +207,7 @@ export function baselineFromProfile(p: Profile): Raw {
     caffeineCups: cups,
     caffeineLate: p.caffeine === 'few' || p.caffeine === 'many' ? 1 : 0,
     waterCups: 4,
-    mealsRegular: p.job === 'irregular' || p.sleep === 'irregular' ? 0 : 1,
+    mealsRegular: p.diet ? (p.diet === 'balanced' || p.diet === 'uneven' ? 1 : 0) : p.job === 'irregular' || p.sleep === 'irregular' ? 0 : 1,
     shortformMin: sf,
     screenBeforeBed: p.shortform === 'heavy' || p.shortform === 'extreme' || p.sleepWhy === 'screen' ? 1 : 0,
     outdoorMin: p.job === 'moving' ? 30 : p.job === 'student' ? 20 : 15,
@@ -193,6 +243,14 @@ const GOAL_BOOST: Record<Profile['goal'], Partial<Record<Category, number>>> = {
   sleep: { sleep: 1.3, screen: 1.2, caffeine: 1.2 },
   focus: { caffeine: 1.15, screen: 1.15, sleep: 1.15 },
   mood: { move: 1.15, sleep: 1.1, screen: 1.1, body: 1.1 },
+};
+
+/** LIFE CLASS별로 어떤 영역의 퀘스트를 더 먼저 추천할지 */
+const LIFE_BOOST: Record<LifeClassId, Partial<Record<Category, number>>> = {
+  healthy: { move: 1.25, body: 1.15, food: 1.1 },
+  creative: { sleep: 1.2, screen: 1.2, caffeine: 1.1 },
+  balanced: {},
+  successful: { sleep: 1.15, caffeine: 1.1, screen: 1.15, move: 1.1 },
 };
 
 function buildLevers(p: Profile, base: Raw): Lever[] {
@@ -329,6 +387,26 @@ export type PlanItem = {
   points: number;
   gain: number; // 쌍둥이 모델이 예상한 컨디션 상승(점)
   done: boolean;
+  /** 예상 소요 시간(분). 0이면 따로 시간이 들지 않는 습관 */
+  minutes?: number;
+  /** 못 했을 때 남긴 기록. 지금은 기록만 쌓고 퀘스트 조정에는 아직 쓰지 않습니다. */
+  fail?: { reason: string; at: number };
+  /** 'ai' = OpenAI가 만든 퀘스트, 없거나 'model' = 신경망·규칙으로 고른 퀘스트 */
+  source?: 'ai' | 'model';
+  /** AI가 쓴 구체적인 행동 / 기대 변화 / 완료 조건 */
+  action?: string;
+  expected?: string;
+  doneWhen?: string;
+  aiDifficulty?: string;
+  /** 추천 근거로 연결된 실제 입력 항목 */
+  evidence?: Evidence[];
+  verified?: boolean;
+  /** 이 퀘스트 만든 AI 호출의 시각(ISO) */
+  aiAt?: string;
+  /** 추천 만족도 */
+  feedback?: 'good' | 'bad';
+  /** 완료한 시각 */
+  doneAt?: number;
 };
 
 export type WhatIf = { id: string; title: string; gain: number };
@@ -337,7 +415,7 @@ export type WhatIf = { id: string; title: string; gain: number };
 /** accept: 미션별로 내가 실제로 지킬 확률(0~1). 없으면 0.5 = 효과만으로 정렬합니다. */
 export function whatIfRanking(model: TwinModel, p: Profile, base: Raw, accept: Record<string, number> = {}): { ranking: (WhatIf & { weighted: number; minutes: number; why: string; accept: number })[]; baseScore: number } {
   const baseScore = predict(model, base);
-  const boost = GOAL_BOOST[p.goal];
+  const boost = (p.lifeClass ? LIFE_BOOST[p.lifeClass] : undefined) ?? GOAL_BOOST[p.goal];
   const ranking = buildLevers(p, base)
     .map(l => {
       const gain = predict(model, l.apply(base)) - baseScore;
@@ -366,6 +444,7 @@ export function generatePlan(model: TwinModel, p: Profile, base: Raw, maxItems =
       points: clamp(Math.round(r.gain * 1.6), 3, 20),
       gain: r.gain,
       done: false,
+      minutes: r.minutes,
     });
   }
   return items;

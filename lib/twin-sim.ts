@@ -47,19 +47,26 @@ const todayish = (today: string, back: number) => {
 };
 
 /**
- * 최근 `days`일 동안의 퀘스트 달성률(0~1). 기록이 없으면 null.
- * 오늘은 하나라도 달성했을 때부터 반영합니다. (하루가 막 시작해 0%인 상태가 평균을 깎지 않게)
+ * 최근 `days`일 동안의 퀘스트 달성률(0~1). 관찰한 기록이 하나도 없으면 null.
+ * - 지난 날은 "한 개수 / 제안된 개수"로 셉니다.
+ * - 오늘은 아직 끝나지 않았으므로 **한 것만** 성공으로 세고, 안 한 것은 실패로 세지 않습니다.
+ *   (그래서 오늘 퀘스트를 체크할수록 달성률이 오르기만 합니다)
+ * - 기록이 적을 때 값이 흔들리지 않도록 "달성률 60%"라는 가정을 관찰 4번 분량으로 섞습니다.
  */
 export function completionRate(plans: Record<string, PlanItem[]>, today: string, days = 14): number | null {
-  const ratios: number[] = [];
+  let done = 0;
+  let total = 0;
   for (let i = 0; i < days; i++) {
     const items = plans[todayish(today, i)];
     if (!items || items.length === 0) continue;
-    const r = items.filter(x => x.done).length / items.length;
-    if (i === 0 && r === 0) continue;
-    ratios.push(r);
+    const d = items.filter(x => x.done).length;
+    done += d;
+    total += i === 0 ? d : items.length;
   }
-  return ratios.length ? ratios.reduce((a, b) => a + b, 0) / ratios.length : null;
+  if (total === 0) return null;
+  const PRIOR = 0.6;
+  const WEIGHT = 4;
+  return (done + PRIOR * WEIGHT) / (total + WEIGHT);
 }
 
 /** 쌍둥이가 미리 맞힌 값과 실제의 차이(RMSE). 기록이 5일 미만이면 null. */
@@ -180,3 +187,10 @@ export function missionStats(plans: Record<string, PlanItem[]>, today: string): 
 /** 베타(1,1) 사전분포로 부드럽게 한 "지킬 확률". 기록이 없으면 0.5. */
 export const acceptProbs = (stats: Record<string, MissionStat>): Record<string, number> =>
   Object.fromEntries(Object.entries(stats).map(([id, s]) => [id, (s.done + 1) / (s.total + 2)]));
+
+/** 미션(레버)이 어느 생활 영역을 개선하는지 */
+export const LEVER_GROUP: Record<string, GroupId> = {
+  sleep: 'sleep', screen: 'sleep', shortform: 'digital',
+  caffeine: 'energy', water: 'energy', meals: 'energy',
+  walk: 'move', stretch: 'move', exercise: 'move', outdoor: 'move',
+};

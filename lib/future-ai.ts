@@ -31,7 +31,7 @@ export function validateInput(body: unknown): FutureInput | null {
     if ((role !== 'user' && role !== 'assistant') || !content) return null;
     messages.push({ role, content });
   }
-  // Claude는 user부터 시작해 user/assistant가 번갈아 나와야 합니다.
+  // 대화는 user부터 시작해 user/assistant가 번갈아 나와야 합니다.
   if (messages[0].role !== 'user' || messages[messages.length - 1].role !== 'user') return null;
   for (let i = 1; i < messages.length; i++) if (messages[i].role === messages[i - 1].role) return null;
   const changes = Array.isArray(o.changes) ? (o.changes as unknown[]).slice(0, 6).map(c => str(c, 60)).filter(Boolean) : [];
@@ -59,17 +59,7 @@ export function buildSystemPrompt(i: FutureInput): string {
 - 이 대화는 상상이라는 걸 잊지 않되, 지금의 습관과 연결해서 말해.`;
 }
 
-export function buildRequestBody(i: FutureInput, model: string) {
-  return { model, max_tokens: 400, system: buildSystemPrompt(i), messages: i.messages };
-}
-
-export function parseReply(json: unknown): string | null {
-  const content = (json as { content?: unknown })?.content;
-  if (!Array.isArray(content)) return null;
-  const text = content
-    .filter((b: { type?: string }) => b?.type === 'text')
-    .map((b: { text?: string }) => b.text ?? '')
-    .join('\n')
-    .trim();
-  return text ? text.slice(0, 1200) : null;
+/** OpenAI Chat Completions 형식: system 메시지 + 대화 기록 */
+export function futureMessages(i: FutureInput) {
+  return [{ role: 'system' as const, content: buildSystemPrompt(i) }, ...i.messages];
 }

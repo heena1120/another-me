@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import TwinStage from '@/components/TwinStage';
 import LossChart from '@/components/LossChart';
-import QuestTray, { questGain, questShort } from '@/components/home/QuestTray';
 import LevelUp from '@/components/home/LevelUp';
 import { useAvatar } from '@/lib/avatar-store';
 import { predict } from '@/lib/twin-model';
 import { generatePlan, improvedHabits, pickChallenge, todayKey, type PlanItem } from '@/lib/twin-data';
+import { difficultyOf, minutesLabel, questGain, questIcon, questShort } from '@/lib/quest-meta';
 import { acceptProbs, closenessOf, completionRate, idealRange, levelOfScore, levelUpPath, missionStats, moodForVitality, residualStd, simulate5y, vitalityOf } from '@/lib/twin-sim';
 import { twinActions } from '@/lib/twin-store';
 import { useTwin } from '@/lib/use-twin';
@@ -20,7 +20,6 @@ export default function HomeTwin() {
   const router = useRouter();
   const avatar = useAvatar();
   const { state, model, baseHabits, training } = useTwin();
-  const [pops, setPops] = useState<{ id: number; text: string }[]>([]);
 
   const profile = state?.profile ?? null;
   const plans = state?.plans;
@@ -28,10 +27,10 @@ export default function HomeTwin() {
   const today = state ? todayKey() : ''; // 브라우저에서 데이터를 읽은 뒤에만 계산됩니다.
   const plan: PlanItem[] | undefined = plans?.[today];
 
-  // 내가 실제로 지킨 미션 기록에서 "지킬 확률"을 배워 추천에 반영합니다.
+  // 내가 실제로 지킨 퀘스트 기록에서 "지킬 확률"을 배워 추천에 반영합니다.
   const accept = useMemo(() => (plans ? acceptProbs(missionStats(plans, todayKey())) : {}), [plans]);
 
-  // 지금 상태 분석: 체크한 미션을 지켰다고 가정한 습관으로 점수를 다시 계산하고, 레벨·근접도·레벨업 경로를 구합니다.
+  // 지금 상태 분석: 체크한 퀘스트를 지켰다고 가정한 습관으로 점수를 다시 계산하고, 레벨·근접도·레벨업 경로를 구합니다.
   const view = useMemo(() => {
     if (!profile || !model || !baseHabits || !plans || !checkins) return null;
     const ideal = idealRange(model);
@@ -40,17 +39,17 @@ export default function HomeTwin() {
     const lv = levelOfScore(live, ideal);
     const path = plan && lv.nextAtScore !== null ? levelUpPath(model, profile, baseHabits, plan, lv.nextAtScore + 0.01) : null;
     const sim = simulate5y(model, profile, baseHabits, { adherence: completionRate(plans, todayKey()), sigma: residualStd(checkins), items: plan, accept });
-    return { live, lv, path, future: closenessOf(sim.traj[60].improved, ideal) };
+    return { live, lv, path, now: closenessOf(sim.traj[0].now, ideal), future: closenessOf(sim.traj[60].improved, ideal) };
   }, [profile, model, baseHabits, plans, checkins, plan, accept]);
 
   const levelNow = view?.lv.level ?? null;
 
-  // 아직 캐릭터를 만든 적이 없으면 캐릭터 만들기로 보냅니다.
+  // 아직 캐릭터를 만든 적이 없으면 시작 화면으로 보냅니다.
   useEffect(() => {
-    if (avatar === null) router.replace('/create');
+    if (avatar === null) router.replace('/welcome');
   }, [avatar, router]);
 
-  // 오늘 미션은 하루에 한 번, 쌍둥이 모델의 what-if 결과에 "내가 지킬 확률"을 곱해서 정합니다.
+  // 오늘 퀘스트는 하루에 한 번, 쌍둥이 모델의 what-if 결과에 "내가 지킬 확률"을 곱해서 정합니다.
   useEffect(() => {
     const day = todayKey();
     if (!state?.profile || !model || !baseHabits || state.plans[day]) return;
@@ -80,9 +79,8 @@ export default function HomeTwin() {
 
   if (!avatar || !state) {
     return (
-      <div className="hero loading" role="status" aria-live="polite">
-        <div className="blob-skeleton" aria-hidden="true" />
-        <p>내 쌍둥이를 불러오는 중…</p>
+      <div className="twin-card" role="status" aria-live="polite" style={{ display: 'grid', placeItems: 'center', minHeight: 360, color: '#7a7592' }}>
+        <p>내 트윈을 불러오는 중…</p>
       </div>
     );
   }
@@ -91,90 +89,117 @@ export default function HomeTwin() {
   const dance = lv !== null && state.seenLevel !== null && lv.level > state.seenLevel;
   const vitality = view ? vitalityOf(view.live) : 0.6;
   const allDone = !!plan && plan.length > 0 && plan.every(i => i.done);
-  const checkedToday = state.checkins.some(c => c.date === today);
-  const exploreEntry = state.explore.log[today];
   const hintIds = view?.path ?? [];
 
-  // 말풍선: "지금 레벨 → 레벨업하려면 뭘 해야 하는지"를 한 줄로
-  let bubble: string;
-  if (!profile) bubble = '나를 소개해 줘! 지금 내 레벨을 분석해 줄게.';
-  else if (training) bubble = '내 안의 신경망을 학습하는 중이야…';
-  else if (!lv) bubble = '지금 내 상태를 분석하는 중이야…';
-  else if (lv.level >= 10) bubble = '완벽한 나 도착! 이 습관을 계속 이어가 보자.';
+  // 한 줄 안내: "지금 레벨 → 레벨업하려면 뭘 해야 하는지"
+  let hint: string;
+  if (!profile) hint = '나를 소개해 주면 지금 내 상태를 분석해 줄게요.';
+  else if (training) hint = '내 안의 신경망을 학습하는 중이에요…';
+  else if (!lv) hint = '지금 내 상태를 분석하는 중이에요…';
+  else if (lv.level >= 10) hint = '완벽한 나에 도착했어요! 이 습관을 이어 가 보세요.';
   else if (hintIds.length > 0 && plan) {
     const names = plan.filter(i => hintIds.includes(i.id)).map(i => `‘${questShort(i.id, i.title)}’`).join(' + ');
-    bubble = `Lv.${lv.level + 1}까지 +${Math.ceil(lv.toNext ?? 0)}점! ${names}${hintIds.length > 1 ? ' 하면 돼' : ' 하나면 돼'}`;
-  } else if (allDone) bubble = `미션 완료! Lv.${lv.level + 1}까지 +${Math.ceil(lv.toNext ?? 0)}점 남았어. 습관을 쌓으면 올라가.`;
-  else bubble = `Lv.${lv.level + 1}까지 +${Math.ceil(lv.toNext ?? 0)}점. 체크인으로 습관을 쌓으면 올라가.`;
-
-  const toggle = (item: PlanItem) => {
-    twinActions.toggleItem(today, item.id);
-    if (!item.done) {
-      const id = Date.now();
-      setPops(p => [...p, { id, text: `+${questGain(item)}점` }]);
-      setTimeout(() => setPops(p => p.filter(x => x.id !== id)), 1200);
-    }
-  };
+    hint = `Lv.${lv.level + 1}까지 +${Math.ceil(lv.toNext ?? 0)}점 · ${names}${hintIds.length > 1 ? ' 를 해 보세요' : ' 하나면 돼요'}`;
+  } else if (allDone) hint = `퀘스트 완료! Lv.${lv.level + 1}까지 +${Math.ceil(lv.toNext ?? 0)}점 남았어요. 습관을 쌓으면 올라가요.`;
+  else hint = `Lv.${lv.level + 1}까지 +${Math.ceil(lv.toNext ?? 0)}점. 체크인으로 습관을 쌓으면 올라가요.`;
 
   return (
     <>
-      <div className="hero">
-        <TwinStage avatar={avatar} height="fill" lift={-0.12} distance={9.4} dance={dance} vitality={vitality} mood={moodForVitality(vitality)} />
+      <section className="twin-card" aria-label="MY TWIN">
+        <div className="twin-stage">
+          <TwinStage avatar={avatar} height="fill" lift={-0.1} distance={8.4} dance={dance} vitality={vitality} mood={moodForVitality(vitality)} />
+        </div>
+        <div className="twin-badges">
+          <span className="twin-name">
+            <small>{lv ? `Lv.${lv.level}` : 'Lv.–'}</small>
+            {avatar.name}
+          </span>
+        </div>
+        {dance && lv && <LevelUp level={lv.level} />}
 
-        <div className="hud">
-          <div className="hud-top">
-            <div className="lvl" role="img" aria-label={lv ? `레벨 ${lv.level} ${lv.name}, 다음 레벨까지 ${Math.round(lv.progress * 100)}%` : '레벨 분석 중'}>
-              <svg viewBox="0 0 44 44" aria-hidden="true">
-                <circle cx="22" cy="22" r="19" fill="#fff" stroke="#e9dfe3" strokeWidth="4" />
-                <circle cx="22" cy="22" r="19" fill="none" stroke="#ff5c8a" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${Math.max(0.03, lv?.progress ?? 0) * 119.4} 119.4`} transform="rotate(-90 22 22)" />
-              </svg>
-              <span><small>Lv</small>{lv?.level ?? '–'}</span>
+        <div className="twin-info">
+          <div className="growth">
+            <div className="growth-head">
+              <strong>{lv ? lv.name : '분석 중'}</strong>
+              <span>{lv ? `되고 싶은 모습까지 ${pct(lv.closeness)}` : ''}</span>
             </div>
-            <div className="score" aria-label="완벽한 나에 가까운 정도">
-              <small className="lvname">{lv ? lv.name : '분석 중'}</small>
-              <strong>{lv ? pct(lv.closeness) : '–'}</strong>
-              <small>완벽한 나까지</small>
+            <div className="bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((lv?.progress ?? 0) * 100)} aria-label="다음 레벨까지">
+              <span style={{ width: `${Math.max(4, Math.round((lv?.progress ?? 0) * 100))}%` }} />
             </div>
-            <div className="spacer" />
           </div>
-
-          {!dance && <p className="hud-bubble">{bubble}</p>}
-
-          {view && (
-            <Link className="future-chip" href="/future">
-              5년 뒤 <b>{pct(view.future)}</b> ↗
+          <p className="hint-line">{hint}</p>
+          {profile && training && (
+            <div role="status">
+              <LossChart history={training.history} height={56} />
+            </div>
+          )}
+          {!profile && (
+            <Link className="btn primary" href="/onboarding">
+              나 소개하기 (1분)
             </Link>
           )}
-
-          <div className="pops" aria-hidden="true">
-            {pops.map(p => (
-              <span key={p.id} className="pop">{p.text}</span>
-            ))}
-          </div>
-
-          <div className="hud-bottom">
-            {!profile && <Link className="btn primary hud-cta" href="/interview">나 소개하기 (1분)</Link>}
-            {profile && training && (
-              <div className="train-card" role="status">
-                <small>사전학습 {training.epoch}/{training.epochs}</small>
-                <LossChart history={training.history} height={60} />
-              </div>
-            )}
-            {profile && plan && plan.length > 0 && <QuestTray items={plan} hintIds={hintIds} onToggle={toggle} />}
-            {profile && plan && plan.length === 0 && <p className="hud-note">이미 좋은 습관이에요. 체크인으로 쌍둥이를 키워 보세요!</p>}
-            <div className="hud-links">
-              <Link href="/explore" className="hud-link">🧭 탐험{exploreEntry?.done ? ' ✓' : ''}</Link>
-              <Link href="/checkin" className="hud-link strong">📸 체크인{checkedToday ? ' ✓' : ''}</Link>
-            </div>
+          <div className="twin-actions">
+            <Link className="btn" href="/create">✏️ 꾸미기</Link>
+            <Link className="btn" href="/checkin">📸 체크인</Link>
           </div>
         </div>
+      </section>
 
-        {dance && lv && <LevelUp level={lv.level} />}
-      </div>
+      {profile && plan && (
+        <section className="section" aria-label="오늘의 AI QUEST">
+          <div className="section-head">
+            <h2>오늘의 AI QUEST</h2>
+            <Link href="/quests">자세히 보기</Link>
+          </div>
+          {plan.length === 0 && <p className="card muted">이미 좋은 습관이에요. 체크인으로 쌍둥이를 키워 보세요!</p>}
+          {plan.map(item => {
+            const hintHere = !item.done && hintIds.includes(item.id);
+            return (
+              <div key={item.id} className={`qrow${item.done ? ' done' : ''}`}>
+                <span className="qicon" aria-hidden="true">{questIcon(item.id)}</span>
+                <div className="qtext">
+                  <strong>{item.title}</strong>
+                  <div className="qmeta">
+                    <span className={`tag ${difficultyOf(item, accept[item.id]) === '쉬움' ? 'easy' : difficultyOf(item, accept[item.id]) === '도전' ? 'hard' : ''}`}>{difficultyOf(item, accept[item.id])}</span>
+                    <span>{minutesLabel(item)}</span>
+                    <span className="tag xp">+{questGain(item)}점</span>
+                    {hintHere && <span className="tag">레벨업!</span>}
+                  </div>
+                </div>
+                <button type="button" className="check" aria-pressed={item.done} aria-label={`${item.title} ${item.done ? '완료 취소' : '완료'}`} onClick={() => twinActions.toggleItem(today, item.id)}>
+                  ✓
+                </button>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
+      {view && (
+        <section className="card" aria-label="5년 뒤 미리보기">
+          <div className="section-head">
+            <h2>FUTURE ME 미리보기</h2>
+            <Link href="/future">비교하기</Link>
+          </div>
+          <div className="preview-future">
+            <div>
+              <strong>{pct(view.now)}</strong>
+              <small>지금 습관 유지</small>
+            </div>
+            <span className="arrow" aria-hidden="true">→</span>
+            <div className="good">
+              <strong>{pct(view.future)}</strong>
+              <small>퀘스트를 지키면 5년 뒤</small>
+            </div>
+          </div>
+          <p className="muted small">현재 습관을 바탕으로 만든 가상 시나리오예요. 확정된 예측이 아니에요.</p>
+        </section>
+      )}
 
       <p className="foot-links">
-        <Link href="/create">✏️ 캐릭터 꾸미기</Link>
-        <Link href="/interview">⚙ 내 정보 다시 입력</Link>
+        <Link href="/explore">🧭 탐험</Link>
+        <Link href="/analysis">🧠 신경망 분석 근거</Link>
+        <Link href="/trace">🔎 AI TRACE</Link>
       </p>
     </>
   );

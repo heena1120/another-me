@@ -1,3 +1,3 @@
-// 앱 이름은 여기 한 곳에서만 관리합니다. 정해지면 이 값만 바꾸세요.
-export const APP_NAME = '나의 쌍둥이';
-export const APP_TAGLINE = '내 쌍둥이와 함께하는 건강 레벨업';
+// 앱 이름은 여기 한 곳에서만 관리합니다.
+export const APP_NAME = 'ANOTHER ME';
+export const APP_TAGLINE = '나를 닮은 디지털 트윈과 함께 성장하는 AI 라이프 서비스';

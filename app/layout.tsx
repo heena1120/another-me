@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { APP_NAME, APP_TAGLINE } from "@/lib/config";
 import Nav from "@/components/Nav";
+import AppHeader from "@/components/AppHeader";
 import "./globals.css";
 import "./hud.css";
 import "./mobile.css";
+import "./design.css";
 
 export const metadata: Metadata = {
   title: { default: APP_NAME, template: `%s | ${APP_NAME}` },
@@ -22,8 +24,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ko">
       <body>
-        <Nav />
+        <AppHeader />
         {children}
+        <Nav />
       </body>
     </html>
   );

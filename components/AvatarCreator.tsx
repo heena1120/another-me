@@ -66,14 +66,14 @@ function Group<K extends keyof Avatar>({
   );
 }
 
-export default function AvatarCreator() {
+export default function AvatarCreator({ onSaved, submitLabel }: { onSaved?: () => void; submitLabel?: string } = {}) {
   const saved = useAvatar();
   // 브라우저에서 저장된 캐릭터를 읽을 때까지 기다린 뒤, 그 값으로 폼을 시작합니다.
   if (saved === undefined) return <p className="hint" role="status">불러오는 중…</p>;
-  return <CreatorForm initial={saved ?? DEFAULT_AVATAR} isEdit={saved !== null} />;
+  return <CreatorForm initial={saved ?? DEFAULT_AVATAR} isEdit={saved !== null} onSaved={onSaved} submitLabel={submitLabel} />;
 }
 
-function CreatorForm({ initial, isEdit }: { initial: Avatar; isEdit: boolean }) {
+function CreatorForm({ initial, isEdit, onSaved, submitLabel }: { initial: Avatar; isEdit: boolean; onSaved?: () => void; submitLabel?: string }) {
   const router = useRouter();
   const [draft, setDraft] = useState<Avatar>(initial);
   const [mood, setMood] = useState<Mood>('normal');
@@ -84,7 +84,8 @@ function CreatorForm({ initial, isEdit }: { initial: Avatar; isEdit: boolean }) 
   const submit = () => {
     if (!nameOk) return;
     saveAvatar({ ...draft, name: draft.name.trim() });
-    router.push('/');
+    if (onSaved) onSaved();
+    else router.push('/');
   };
 
   return (
@@ -138,7 +139,7 @@ function CreatorForm({ initial, isEdit }: { initial: Avatar; isEdit: boolean }) 
             🎲 랜덤
           </button>
           <button type="button" className="btn primary" disabled={!nameOk} onClick={submit}>
-            {isEdit ? '저장하기' : '저장하고 시작'}
+            {submitLabel ?? (isEdit ? '저장하기' : '저장하고 시작')}
           </button>
         </div>
         {!nameOk && <p className="hint">이름을 지어 주면 시작할 수 있어요.</p>}

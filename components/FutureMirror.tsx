@@ -9,7 +9,7 @@ import { useAvatar } from '@/lib/avatar-store';
 import { useAiEnabled } from '@/lib/use-ai-enabled';
 import { predict } from '@/lib/twin-model';
 import { improvedHabits, todayKey, whatIfRanking } from '@/lib/twin-data';
-import { acceptProbs, closenessOf, completionRate, idealRange, levelOfScore, missionStats, moodForVitality, residualStd, simulate5y, vitalityOf } from '@/lib/twin-sim';
+import { acceptProbs, closenessOf, completionRate, groupScores, idealRange, levelOfScore, missionStats, moodForVitality, residualStd, simulate5y, vitalityOf } from '@/lib/twin-sim';
 import { useTwin } from '@/lib/use-twin';
 
 const approx = (n: number) => Math.round(n / 10) * 10; // 시뮬레이션이라 일 수는 10일 단위로 보여 줍니다.
@@ -20,6 +20,7 @@ export default function FutureMirror() {
   const avatar = useAvatar();
   const { state, model, baseHabits } = useTwin();
   const [month, setMonth] = useState(60);
+  const [mode, setMode] = useState<'compare' | 'keep' | 'change'>('compare'); // FUTURE SWITCH
   const aiEnabled = useAiEnabled();
 
   const profile = state?.profile ?? null;
@@ -34,6 +35,10 @@ export default function FutureMirror() {
     const accept = acceptProbs(missionStats(plans, today));
     const sim = simulate5y(model, profile, baseHabits, { adherence: completionRate(plans, today), sigma: residualStd(checkins), items: plans[today], accept });
     const ids = sim.items.map(i => i.id);
+    const full = improvedHabits(profile, baseHabits, ids);
+    const gNow = groupScores(model, baseHabits);
+    const gFull = groupScores(model, full);
+    const groups = gNow.map((g, i) => ({ label: g.label, now: g.score, full: gFull[i].score }));
 
     // "완벽한 나로 가는 길": 지금 미션을 모두 지킨 뒤에도 더 하면 좋은 습관을 효과 큰 순서로 더해 봅니다.
     const extras = whatIfRanking(model, profile, baseHabits, accept)
@@ -49,6 +54,7 @@ export default function FutureMirror() {
       sim,
       ideal,
       road,
+      groups,
       nowClose: closenessOf(sim.traj[0].now, ideal),
       keepClose: closenessOf(predict(model, improvedHabits(profile, baseHabits, ids)), ideal),
     };
@@ -95,17 +101,29 @@ export default function FutureMirror() {
         </p>
       </section>
 
-      <section className="mirror" aria-label="두 가지 미래">
-        <div className="mirror-side">
-          <span className="mirror-tag">지금 습관 그대로</span>
-          <TwinStage avatar={avatar} height={230} vitality={vNow} mood={moodForVitality(vNow)} />
-          <strong className="mirror-score">{pct(closenessOf(at.now, ideal))}</strong>
-        </div>
-        <div className="mirror-side good">
-          <span className="mirror-tag">미션을 지키면</span>
-          <TwinStage avatar={avatar} height={230} vitality={vImp} mood={moodForVitality(vImp)} />
-          <strong className="mirror-score">{pct(closenessOf(at.improved, ideal))}</strong>
-        </div>
+      <div className="seg" role="group" aria-label="FUTURE SWITCH: 보고 싶은 미래">
+        {([['compare', '비교'], ['keep', '습관 유지'], ['change', '행동 변화']] as const).map(([id, label]) => (
+          <button key={id} type="button" aria-pressed={mode === id} onClick={() => setMode(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <section className={mode === 'compare' ? 'mirror' : 'mirror single'} aria-label="미래 시나리오">
+        {mode !== 'change' && (
+          <div className="mirror-side">
+            <span className="mirror-tag">현재 습관 유지</span>
+            <TwinStage avatar={avatar} height={mode === 'compare' ? 230 : 300} vitality={vNow} mood={moodForVitality(vNow)} />
+            <strong className="mirror-score">{pct(closenessOf(at.now, ideal))}</strong>
+          </div>
+        )}
+        {mode !== 'keep' && (
+          <div className="mirror-side good">
+            <span className="mirror-tag">행동을 바꾸면</span>
+            <TwinStage avatar={avatar} height={mode === 'compare' ? 230 : 300} vitality={vImp} mood={moodForVitality(vImp)} />
+            <strong className="mirror-score">{pct(closenessOf(at.improved, ideal))}</strong>
+          </div>
+        )}
       </section>
 
       <section className="card time-card">
@@ -139,19 +157,45 @@ export default function FutureMirror() {
         </div>
       </section>
 
+      <section className="card" aria-label="두 미래의 차이">
+        <h2>두 미래의 차이 (5년 뒤)</h2>
+        <table className="compare">
+          <thead>
+            <tr><th scope="col">영역</th><th scope="col">습관 유지</th><th scope="col">행동 변화</th><th scope="col">차이</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>완벽한 나까지</td>
+              <td>{pct(nowClose)}</td>
+              <td>{pct(endClose)}</td>
+              <td className="gain">+{Math.round((endClose - nowClose) * 100)}%p</td>
+            </tr>
+            {calc.groups.map(g => (
+              <tr key={g.label}>
+                <td>{g.label}</td>
+                <td>{Math.round(g.now)}%</td>
+                <td>{Math.round(g.full)}%</td>
+                <td className="gain">{g.full - g.now >= 1 ? `+${Math.round(g.full - g.now)}%p` : '–'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="muted small">영역 점수는 이상적인 습관 대비 %이고, 행동 변화는 오늘의 퀘스트를 모두 지켰을 때예요.</p>
+      </section>
+
       <section className="card">
         <div className="card-head">
-          <h2>이 미션들로 가요</h2>
-          <Link className="points" href="/">오늘 미션 하러 가기</Link>
+          <h2>이 퀘스트들로 가요</h2>
+          <Link className="points" href="/quests">오늘 퀘스트 하러 가기</Link>
         </div>
         <div className="chips">
           {sim.items.length > 0 ? sim.items.map(i => <span key={i.id} className="chip static">{i.title}</span>) : <span className="muted">이미 좋은 습관이에요. 지금처럼만!</span>}
         </div>
         {calc.road.length > 0 && (
           <>
-            <h3 className="road-title">완벽한 나(100%)로 가는 길</h3>
+            <h3 className="road-title">되고 싶은 모습(100%)으로 가는 길</h3>
             <ol className="road">
-              <li><span>미션을 모두 지키면</span><b>{pct(calc.keepClose)}</b></li>
+              <li><span>퀘스트를 모두 지키면</span><b>{pct(calc.keepClose)}</b></li>
               {calc.road.map(r => (
                 <li key={r.label}><span>+ {r.label}</span><b>{pct(r.close)}</b></li>
               ))}

@@ -1,4 +1,5 @@
 // 서버 API 공통 도우미
+import { LLM_ERRORS, type LlmErrorCode } from './openai';
 
 export const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 
@@ -14,13 +15,25 @@ export function rejectForeignOrigin(req: Request): Response | null {
   return json({ error: '허용되지 않은 요청이에요.' }, 403);
 }
 
-export const claudeModel = () => process.env.ANTHROPIC_MODEL?.trim() || 'claude-sonnet-5-5';
+// 서버 한 대(인스턴스) 안에서만 세는 간단한 호출 횟수 제한입니다. 키가 남용되는 것을 줄이려는 최소한의 장치예요.
+const hits = new Map<string, number[]>();
 
-export const missingKeyResponse = () =>
-  json({ error: '서버에 Claude API 키가 아직 설정되지 않았어요. .env.local 에 ANTHROPIC_API_KEY 를 넣고 서버를 다시 시작해 주세요.' }, 503);
+export function rateLimited(req: Request, bucket: string, limit: number, windowMs: number): Response | null {
+  const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'local';
+  const k = `${bucket}:${ip}`;
+  const now = Date.now();
+  const recent = (hits.get(k) ?? []).filter(t => now - t < windowMs);
+  if (recent.length >= limit) {
+    hits.set(k, recent);
+    return json({ error: '잠시 뒤에 다시 시도해 주세요. (짧은 시간에 너무 많이 요청했어요)', code: 'rate' }, 429);
+  }
+  recent.push(now);
+  hits.set(k, recent);
+  return null;
+}
 
-/** Anthropic 오류 응답은 본문을 그대로 전달하지 않고 안전한 문구로 바꿉니다. */
-export function upstreamError(status: number): Response {
-  const msg = status === 401 ? 'Claude API 키가 올바르지 않아요.' : status === 429 ? '요청이 많아요. 잠시 뒤 다시 시도해 주세요.' : 'AI 응답에 실패했어요. 다시 시도해 주세요.';
-  return json({ error: msg }, 502);
+/** OpenAI 호출 실패를 사용자 안내 응답으로 바꿉니다. */
+export function llmErrorResponse(code: LlmErrorCode): Response {
+  const e = LLM_ERRORS[code];
+  return json({ error: e.message, code }, e.status);
 }
