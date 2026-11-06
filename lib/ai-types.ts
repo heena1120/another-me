@@ -16,6 +16,10 @@ export const LEVER_NAMES: Record<LeverId, string> = {
   meals: '식사 시간',
   outdoor: '바깥 활동',
 };
+/** 퀘스트 종류가 속한 생활 영역(점수 영역 id와 같음) */
+export const LEVER_AREA: Record<LeverId, 'sleep' | 'move' | 'energy' | 'digital'> = {
+  sleep: 'sleep', screen: 'sleep', shortform: 'digital', caffeine: 'energy', water: 'energy', meals: 'energy', walk: 'move', stretch: 'move', exercise: 'move', outdoor: 'move',
+};
 export const leverName = (id: string) => (LEVER_NAMES as Record<string, string>)[id] ?? id;
 
 export const DIFFICULTIES = ['쉬움', '보통', '도전'] as const;
@@ -28,10 +32,10 @@ export type LifeClassId = (typeof LIFE_CLASS_IDS)[number];
 export const ANSWER_KEYS = ['job', 'walk', 'sleep', 'sleepWhy', 'caffeine', 'shortform', 'budget', 'pref', 'goal', 'energyTime', 'diet', 'selfcare', 'change'] as const;
 
 /** 추천 근거로 가리킬 수 있는 입력 항목 */
-export const EVIDENCE_KEYS = [...ANSWER_KEYS, 'lifeClass', 'memory.failed', 'memory.done', 'memory.failTimes', 'memory.preferred', 'memory.feedback', 'signals.areas'] as const;
+export const EVIDENCE_KEYS = [...ANSWER_KEYS, 'lifeClass', 'memory.failed', 'memory.done', 'memory.failTimes', 'memory.preferred', 'memory.feedback', 'signals.areas', 'wish', 'checkin'] as const;
 export type EvidenceKey = (typeof EVIDENCE_KEYS)[number];
 
-export const PROMPT_VERSIONS = { coach: 'coach-v2', photo: 'photo-v1', future: 'future-v1' } as const;
+export const PROMPT_VERSIONS = { coach: 'coach-v6', photo: 'photo-v1', future: 'future-v1' } as const;
 
 // ───────── AI에게 보내는 입력 ─────────
 export type CoachMemory = {
@@ -48,6 +52,8 @@ export type CoachMemory = {
   feedback: { good: number; bad: number; badLevers: string[] };
 };
 
+export type CoachCheckin = { date: string; sleepHours: number; steps: number; exerciseMin: number; caffeineCups: number; shortformMin: number; screenBeforeBed: boolean; feeling: number };
+
 export type CoachInput = {
   mode: 'initial' | 'reanalyze';
   lifeClass: { id: LifeClassId; name: string; meaning: string } | null;
@@ -59,6 +65,12 @@ export type CoachInput = {
     levers: { id: LeverId; title: string; gain: number; minutes: number }[];
   };
   memory: CoachMemory;
+  /** 사용자가 자기 말로 쓴 원하는 방식·제약. 가장 우선해서 지켜야 함 */
+  preference?: { wish: string | null };
+  /** 오늘 사용자가 직접 기록한 실제 생활(체크인). 없으면 null */
+  checkin?: CoachCheckin | null;
+  /** 프로그램이 정한 조건. mustCoverArea가 있으면 그 영역의 퀘스트를 최소 1개 포함해야 함 */
+  constraints?: { mustCoverArea: string | null; maxQuests?: number };
 };
 
 // ───────── AI가 돌려준 결과(검증 후) ─────────

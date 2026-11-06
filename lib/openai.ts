@@ -12,7 +12,7 @@ export type LlmOk = {
   requestId: string | null;
 };
 
-export type LlmErrorCode = 'no_key' | 'auth' | 'rate' | 'timeout' | 'network' | 'upstream' | 'refused' | 'truncated' | 'bad_format';
+export type LlmErrorCode = 'no_key' | 'auth' | 'model' | 'quota' | 'rate' | 'timeout' | 'network' | 'upstream' | 'refused' | 'truncated' | 'bad_format';
 export type LlmErr = { ok: false; code: LlmErrorCode };
 
 export const openaiModel = () => process.env.OPENAI_MODEL?.trim() || 'gpt-5-mini';
@@ -54,7 +54,11 @@ export async function chat(opts: { messages: Message[]; schema?: { name: string;
   const ms = Date.now() - t0;
 
   if (!res.ok) {
-    // 응답 본문에는 키 일부나 입력이 섞일 수 있어 그대로 전달하지 않습니다.
+    // 응답 본문에는 키 일부나 입력이 섞일 수 있어 그대로 전달하지 않고, 오류 "코드"만 읽어 종류를 구분합니다.
+    const err = (await res.json().catch(() => null)) as { error?: { code?: string } } | null;
+    const c = err?.error?.code;
+    if (c === 'model_not_found') return { ok: false, code: 'model' };
+    if (c === 'insufficient_quota') return { ok: false, code: 'quota' };
     return { ok: false, code: res.status === 401 || res.status === 403 ? 'auth' : res.status === 429 ? 'rate' : 'upstream' };
   }
 
@@ -92,6 +96,8 @@ export async function chat(opts: { messages: Message[]; schema?: { name: string;
 export const LLM_ERRORS: Record<LlmErrorCode, { status: number; message: string }> = {
   no_key: { status: 503, message: 'AI가 아직 연결되지 않았어요. 서버의 OPENAI_API_KEY 설정이 필요해요.' },
   auth: { status: 502, message: 'OpenAI API 키가 올바르지 않거나 권한이 없어요.' },
+  model: { status: 502, message: '이 OpenAI 프로젝트에서는 설정된 모델을 쓸 수 없어요. OpenAI 대시보드(프로젝트 설정의 모델 접근)에서 허용하거나, 서버의 OPENAI_MODEL을 허용된 모델로 바꿔 주세요.' },
+  quota: { status: 502, message: 'OpenAI 사용 한도(크레딧)가 소진됐어요. OpenAI 결제·한도 설정을 확인해 주세요.' },
   rate: { status: 429, message: '요청이 많거나 사용 한도에 걸렸어요. 잠시 뒤 다시 시도해 주세요.' },
   timeout: { status: 504, message: 'AI 응답이 너무 오래 걸려요. 다시 시도해 주세요.' },
   network: { status: 504, message: 'AI 서버에 연결하지 못했어요. 네트워크를 확인해 주세요.' },

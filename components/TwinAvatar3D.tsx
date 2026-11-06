@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { BACKGROUNDS, BLUSHES, BODY_COLORS, OUTFIT_COLORS, type Avatar, type Mood } from '@/lib/avatar';
+import { BACKGROUNDS, BLUSHES, BODY_COLORS, HAIR_COLORS, OUTFIT_COLORS, type Avatar, type Mood } from '@/lib/avatar';
 
 const INK = '#5a4545';
 
@@ -175,10 +175,15 @@ function Character({ avatar, mood, dance, vitality }: { avatar: Avatar; mood: Mo
     const wig = dance ? Math.sin(t * 14) * 0.18 : Math.sin(t * 2.4) * 0.05;
     if (earL.current) earL.current.rotation.z = wig;
     if (earR.current) earR.current.rotation.z = -wig;
-    // 팔: 평소엔 살짝 흔들, 춤출 때는 번쩍 들고 휘젓기
-    const armAngle = dance ? 2.0 + Math.sin(t * 14) * 0.55 : 0.05 + Math.sin(t * speed + 1) * 0.04;
-    if (armL.current) armL.current.rotation.z = -armAngle;
-    if (armR.current) armR.current.rotation.z = armAngle;
+    // 팔: 평소엔 살짝 흔들고, 포즈에 따라 올리며, 춤출 때는 번쩍 들고 휘젓기
+    const idle = 0.05 + Math.sin(t * speed + 1) * 0.04;
+    let aL = idle;
+    let aR = idle;
+    if (dance) aL = aR = 2.0 + Math.sin(t * 14) * 0.55;
+    else if (avatar.pose === 'wave') aR = 2.3 + Math.sin(t * 6) * 0.4;
+    else if (avatar.pose === 'cheer') aL = aR = 2.1 + Math.sin(t * 4) * 0.12;
+    if (armL.current) armL.current.rotation.z = -aL;
+    if (armR.current) armR.current.rotation.z = aR;
     if (ring.current) {
       const p = 1 + Math.sin(t * (dance ? 9 : 2)) * (dance ? 0.1 : 0.03);
       ring.current.scale.set(p, p, 1);
@@ -459,6 +464,35 @@ function Character({ avatar, mood, dance, vitality }: { avatar: Avatar; mood: Mo
     }
   })();
 
+  // ───── 헤어 ─────
+  const hairColor = HAIR_COLORS.find(h => h.id === avatar.hairColor)?.value ?? '#8a5a44';
+  const hair = (() => {
+    switch (avatar.hair) {
+      case 'sprout':
+        return (
+          <group position={[0, b * 0.98, 0.05]}>
+            <Part geo={ROUND_CONE} color="#7ed6a8" scale={[0.11, 0.34, 0.07]} position={[-0.07, 0.17, 0]} rotation={[0, 0, 0.55]} />
+            <Part geo={ROUND_CONE} color="#8fe0b6" scale={[0.11, 0.28, 0.07]} position={[0.08, 0.14, 0]} rotation={[0, 0, -0.6]} />
+          </group>
+        );
+      case 'bangs':
+        return (
+          <mesh rotation={[0.42, 0, 0]} scale={[a * 1.035, b * 1.035, c * 1.035]}>
+            <sphereGeometry args={[1, 48, 32, 0, Math.PI * 2, 0, 0.82]} />
+            <Soft color={hairColor} roughness={0.7} />
+          </mesh>
+        );
+      case 'bun':
+        return (
+          <group position={[0, b * 0.98, -0.02]}>
+            <Part geo={SPHERE} color={hairColor} scale={[0.3, 0.3, 0.3]} position={[0, 0.2, 0]} />
+          </group>
+        );
+      default:
+        return null;
+    }
+  })();
+
   const bl = blush ? 0.28 : 0;
 
   return (
@@ -536,6 +570,7 @@ function Character({ avatar, mood, dance, vitality }: { avatar: Avatar; mood: Mo
         </group>
         {mouth}
 
+        {hair}
         {accessory}
       </group>
 

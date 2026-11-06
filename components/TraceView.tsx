@@ -14,6 +14,8 @@ const KIND: Record<TraceEntry['kind'], string> = { coach: 'HIDDEN ME 분석 + AI
 const ERR: Record<string, string> = {
   no_key: 'AI 키가 설정되지 않음',
   auth: '키가 올바르지 않거나 권한 없음',
+  model: '이 프로젝트에서 설정된 모델을 쓸 수 없음',
+  quota: '사용 한도(크레딧) 소진',
   rate: '요청 과다 / 사용 한도',
   timeout: '응답 시간 초과',
   network: '네트워크 오류',

@@ -72,11 +72,13 @@ export default function ScanView() {
         </div>
         <div>
           <p className="eyebrow">지금의 나</p>
-          <h2 style={{ fontSize: 20 }}>Lv.{lv.level} {lv.name}</h2>
+          <h2 style={{ fontSize: 20 }}>{lv.name} · 근접 {lv.level}단계</h2>
           <p className="muted small">컨디션 지수 {score.toFixed(0)}점 (가장 이상적인 습관이면 {ideal.best.toFixed(0)}점)</p>
           {cls && <p className="small" style={{ marginTop: 6 }}><span className="tag">LIFE CLASS</span> {cls.icon} {cls.name}</p>}
         </div>
       </section>
+
+      <HiddenMe twin={twin} />
 
       <section className="card" aria-label="영역별 분석 점수">
         <h2>영역별 분석 점수</h2>
@@ -90,7 +92,6 @@ export default function ScanView() {
             </li>
           ))}
         </ul>
-        <p className="muted small">각 영역이 이상적인 습관에 비해 어느 정도인지를 신경망으로 계산한 값이에요.</p>
       </section>
 
       <section className="card" aria-label="생활 패턴 요약">
@@ -105,8 +106,6 @@ export default function ScanView() {
         </div>
         {n === 0 && <p className="muted small">아직 체크인 기록이 없어서 질문 답변으로 추정한 값이에요. 체크인을 하면 실제 기록으로 바뀌어요.</p>}
       </section>
-
-      <HiddenMe twin={twin} />
 
       <section className="card" aria-label="개선이 필요한 부분">
         <h2>개선이 필요한 부분</h2>
@@ -126,7 +125,6 @@ export default function ScanView() {
 
       <p className="foot-links">
         <Link href="/analysis">🧠 신경망 분석 근거</Link>
-        <Link href="/trace">🔎 AI TRACE</Link>
       </p>
     </div>
   );

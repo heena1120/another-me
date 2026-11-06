@@ -6,6 +6,8 @@ import { todayKey, type Checkin, type ExploreLog, type PlanItem, type Profile } 
 import type { CoachResult, TraceEntry } from '@/lib/ai-types';
 import type { ArchivedFail } from '@/lib/ai-memory';
 import { difficultyOf } from '@/lib/quest-meta';
+import { shadowDef, withBattle, withMicro } from '@/lib/shadow';
+import type { ShadowId } from '@/lib/twin-data';
 
 // 지금은 이 기기의 localStorage에 저장합니다. (Supabase 연결 후 계정 저장으로 교체 예정)
 export type TwinState = {
@@ -18,6 +20,10 @@ export type TwinState = {
   explore: { usual: string[]; log: ExploreLog };
   /** 마지막으로 축하해 준 레벨. 이보다 레벨이 오르면 캐릭터가 춤을 춥니다. */
   seenLevel: number | null;
+  /** 하루 퀘스트 개수(1~6). 맞춤형이 핵심이라 기본은 2개. */
+  questCount: number;
+  /** 마지막 체크인 시각. 이보다 오래된 AI 분석은 체크인을 반영해 다시 돌립니다. */
+  lastCheckinAt: number | null;
   /** AI 결과·기록(AI TRACE). 이 기기에만 저장되고 사진은 저장하지 않습니다. */
   ai: {
     coach: StoredCoach | null;
@@ -28,7 +34,11 @@ export type TwinState = {
 
 export type StoredCoach = { at: string; model: string; mode: 'initial' | 'reanalyze'; promptVersion: string; result: CoachResult; adjustments: string[] };
 
-const EMPTY: TwinState = { profile: null, checkins: [], plans: {}, model: null, pretrainHistory: [], explore: { usual: [], log: {} }, seenLevel: null, ai: { coach: null, traces: [], archivedFails: [] } };
+export const DEFAULT_QUEST_COUNT = 2;
+export const MAX_QUEST_COUNT = 6;
+const clampCount = (n: number) => Math.max(1, Math.min(MAX_QUEST_COUNT, Math.round(n)));
+
+const EMPTY: TwinState = { profile: null, checkins: [], plans: {}, model: null, pretrainHistory: [], explore: { usual: [], log: {} }, seenLevel: null, questCount: DEFAULT_QUEST_COUNT, lastCheckinAt: null, ai: { coach: null, traces: [], archivedFails: [] } };
 const KEY = 'twin.state.v1';
 const EVENT = 'twin-state-change';
 
@@ -65,6 +75,8 @@ function parse(raw: string | null): TwinState {
       model: o.model ?? null,
       pretrainHistory: Array.isArray(o.pretrainHistory) ? o.pretrainHistory.filter(Number.isFinite) : [],
       seenLevel: typeof o.seenLevel === 'number' ? o.seenLevel : null,
+      questCount: typeof o.questCount === 'number' ? clampCount(o.questCount) : DEFAULT_QUEST_COUNT,
+      lastCheckinAt: typeof o.lastCheckinAt === 'number' ? o.lastCheckinAt : null,
       ai: {
         coach: o.ai?.coach && typeof o.ai.coach === 'object' && o.ai.coach.result && Array.isArray(o.ai.coach.result.quests) ? o.ai.coach : null,
         traces: Array.isArray(o.ai?.traces) ? o.ai.traces.filter(t => t && typeof t.id === 'string' && typeof t.at === 'string').slice(0, 40) : [],
@@ -102,10 +114,17 @@ export const twinActions = {
     if (!(plans[key] ?? []).some(i => i.done)) delete plans[key];
     write({ ...s, profile, plans });
   },
+  /** 내 방식(AI에게 한마디)만 바꿉니다. 오늘 계획은 건드리지 않고, 다음 AI 분석부터 반영돼요. */
+  setWish(wish: string) {
+    const s = readState();
+    if (!s.profile) return;
+    const w = wish.trim().slice(0, 160);
+    write({ ...s, profile: { ...s.profile, wish: w || undefined } });
+  },
   /** 같은 날 기록이 있으면 덮어씁니다. */
   addCheckin(c: Checkin) {
     const s = readState();
-    write({ ...s, checkins: [...s.checkins.filter(x => x.date !== c.date), c].sort((a, b) => a.date.localeCompare(b.date)) });
+    write({ ...s, lastCheckinAt: Date.now(), checkins: [...s.checkins.filter(x => x.date !== c.date), c].sort((a, b) => a.date.localeCompare(b.date)) });
   },
   setPlan(date: string, items: PlanItem[]) {
     const s = readState();
@@ -170,6 +189,22 @@ export const twinActions = {
     });
     write({ ...s, plans: { ...s.plans, [date]: [...merged, ...keptDone] }, ai: { ...s.ai, archivedFails: [...archived, ...s.ai.archivedFails].slice(0, 60) } });
   },
+  /** SHADOW BATTLE: 오늘 계획에서 그림자에 맞서는 퀘스트를 지정하거나 작은 단계 퀘스트를 더합니다. */
+  startBattle(date: string, shadow: ShadowId) {
+    const s = readState();
+    const def = shadowDef(shadow);
+    if (!def) return;
+    const { items } = withBattle(s.plans[date] ?? [], def);
+    write({ ...s, plans: { ...s.plans, [date]: items } });
+  },
+  /** 못 한 퀘스트를 더 작은 단계로 바꾸고, 못 한 기록은 AI 기억용 보관함으로 옮깁니다. */
+  shrinkItem(date: string, id: string) {
+    const s = readState();
+    const { items, failed } = withMicro(s.plans[date] ?? [], id);
+    if (!failed) return;
+    const archived: ArchivedFail[] = failed.fail ? [{ date, lever: failed.id, reason: failed.fail.reason, at: failed.fail.at, minutes: failed.minutes ?? null, difficulty: failed.aiDifficulty ?? difficultyOf(failed) }] : [];
+    write({ ...s, plans: { ...s.plans, [date]: items }, ai: { ...s.ai, archivedFails: [...archived, ...s.ai.archivedFails].slice(0, 60) } });
+  },
   saveModel(model: SerializedModel, pretrainHistory: number[]) {
     write({ ...readState(), model, pretrainHistory });
   },
@@ -186,6 +221,28 @@ export const twinActions = {
     const s = readState();
     if (s.explore.log[date]) return;
     write({ ...s, explore: { ...s.explore, log: { ...s.explore.log, [date]: { id, done: false } } } });
+  },
+  /**
+   * 하루 퀘스트 개수를 바꿉니다. 오늘 계획도 바로 맞춥니다:
+   * 해낸·못 한 기록이 있는 퀘스트는 남기고, 나머지를 줄이거나 filler(신경망 추천)에서 채웁니다.
+   */
+  setQuestCount(n: number, filler: PlanItem[] = []) {
+    const s = readState();
+    const count = clampCount(n);
+    const day = todayKey();
+    const items = s.plans[day];
+    let plans = s.plans;
+    if (items) {
+      const keep = items.filter(i => i.done || i.fail);
+      const rest = items.filter(i => !i.done && !i.fail);
+      const next = [...keep, ...rest.slice(0, Math.max(0, count - keep.length))];
+      for (const f of filler) {
+        if (next.length >= count) break;
+        if (!next.some(i => i.id === f.id)) next.push(f);
+      }
+      plans = { ...s.plans, [day]: next };
+    }
+    write({ ...s, questCount: count, plans });
   },
   markLevelSeen(level: number) {
     const s = readState();

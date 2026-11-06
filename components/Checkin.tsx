@@ -92,6 +92,7 @@ function Form({ initial }: { initial: Raw }) {
     return (
       <section className="card" aria-live="polite">
         <h2>쌍둥이가 학습했어요 ✨</h2>
+        <p className="hint-line"><b className="tag ai">AI</b> 홈으로 가면 오늘 기록을 반영해 퀘스트를 다시 맞춰요.</p>
         <p>
           쌍둥이의 예측 <strong>{predicted.toFixed(0)}점</strong> · 실제 <strong>{actual}점</strong> ({diff >= 0 ? '+' : ''}{diff.toFixed(0)})
         </p>

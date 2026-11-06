@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-// 모바일 하단 탭바: 엄지로 누르기 쉬운 위치에 4개. (MY SHADOW, ANOTHER WORLD는 기능이 생기면 추가)
+// 모바일 하단 탭바: 엄지로 누르기 쉬운 위치에 5개. (MY SHADOW·PARALLEL ME는 WORLD 안에서 열어요)
 const TABS: { href: string; label: string; also: string[]; icon: ReactNode }[] = [
   {
     href: '/',
@@ -33,6 +33,12 @@ const TABS: { href: string; label: string; also: string[]; icon: ReactNode }[] =
         <path d="M8 12l3 3 5-6" />
       </>
     ),
+  },
+  {
+    href: '/world',
+    label: 'WORLD',
+    also: ['/shadow', '/parallel'],
+    icon: <path d="M3 20h18M5 20V9l7-5 7 5v11M10 20v-6h4v6" />,
   },
   {
     href: '/future',

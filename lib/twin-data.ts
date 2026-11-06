@@ -23,6 +23,8 @@ export type Profile = {
   change?: 'bold' | 'gradual' | 'slow' | 'hard';
   /** LIFE CLASS(되고 싶은 모습) */
   lifeClass?: LifeClassId;
+  /** 사용자가 자기 말로 쓴 원하는 방식·제약 (예: 30분 걸을 시간은 없어요, 집에서 할 수 있는 걸로) */
+  wish?: string;
 };
 
 export type Answers = Partial<Record<keyof Profile, string>>;
@@ -380,6 +382,9 @@ function buildLevers(p: Profile, base: Raw): Lever[] {
 }
 
 // ───────── 오늘의 체크리스트 ─────────
+/** MY SHADOW의 종류: 반복해서 행동을 가로막는 패턴 */
+export type ShadowId = 'night' | 'phone' | 'avoid' | 'delay' | 'plan';
+
 export type PlanItem = {
   id: string;
   title: string;
@@ -407,6 +412,10 @@ export type PlanItem = {
   feedback?: 'good' | 'bad';
   /** 완료한 시각 */
   doneAt?: number;
+  /** SHADOW BATTLE: 이 퀘스트가 맞서는 그림자 */
+  shadow?: ShadowId;
+  /** 더 작은 단계로 바꾼 퀘스트(프로그램이 제안한 작은 버전) */
+  micro?: boolean;
 };
 
 export type WhatIf = { id: string; title: string; gain: number };

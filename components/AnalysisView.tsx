@@ -151,24 +151,6 @@ export default function AnalysisView() {
         </section>
       )}
 
-      <section className="card" aria-labelledby="dept-title">
-        <h2 id="dept-title">🎓 AI융합과 × 이 앱</h2>
-        <div className="dept">
-          <div className="dept-item">
-            <strong>JavaScript · TypeScript</strong>
-            <p>화면, 3D 캐릭터, 서비스 전체(React · Next.js · three.js)와 브라우저에서 돌아가는 신경망까지 모두 JS/TS로 만들었어요.</p>
-          </div>
-          <div className="dept-item">
-            <strong>인공지능 · 딥러닝</strong>
-            <p>다층 신경망을 라이브러리 없이 직접 구현해(역전파 · Adam) 학습해요. 사전학습 → 개인 보정(전이학습), what-if 설명, 미션 추천 학습(밴딧), 몬테카를로 시뮬레이션을 썼어요.</p>
-          </div>
-          <div className="dept-item soon">
-            <strong>Python · 데이터 분석 (다음 단계)</strong>
-            <p>같은 모델을 Python(NumPy · PyTorch)으로 학습·검증하고 그 결과를 앱에 불러오는 구조로 확장할 수 있어요.</p>
-          </div>
-        </div>
-      </section>
-
       <section className="card">
         <h2>학습 과정</h2>
         {history.length > 1 ? <LossChart history={history} /> : <p className="muted">홈에서 학습이 시작돼요.</p>}

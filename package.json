@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "eval:ab": "node --import ./scripts/register.mjs scripts/ab-eval.mjs",
+    "test": "node --import ./scripts/register.mjs --test scripts/logic.test.mjs"
   },
   "dependencies": {
     "@react-three/fiber": "^9.8.2",

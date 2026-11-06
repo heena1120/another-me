@@ -5,10 +5,14 @@ import Link from 'next/link';
 import { generatePlan, todayKey, type PlanItem } from '@/lib/twin-data';
 import { FAIL_REASONS, difficultyOf, minutesLabel, questGain, questIcon } from '@/lib/quest-meta';
 import { acceptProbs, missionStats } from '@/lib/twin-sim';
+import { DAILY_XP_CAP, dayXp, xpIfDone } from '@/lib/growth';
+import { shadowDef } from '@/lib/shadow';
 import { twinActions } from '@/lib/twin-store';
 import { useAiCoach } from '@/lib/use-ai-coach';
 import { useAiStatus } from '@/lib/use-ai-enabled';
 import { useTwin } from '@/lib/use-twin';
+import { diffCount, diffRuns } from '@/lib/ai-diff';
+import { leverName } from '@/lib/ai-types';
 
 const tagClass = (d: string) => (d === '쉬움' ? 'easy' : d === '도전' ? 'hard' : '');
 const when = (iso: string) => new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -26,6 +30,7 @@ export default function QuestBoard() {
   const ai = useAiStatus();
   const { run, busy, error } = useAiCoach(twin);
   const [failing, setFailing] = useState<string | null>(null);
+  const [wishDraft, setWishDraft] = useState<string | null>(null);
 
   const plans = state?.plans;
   const accept = useMemo(() => (plans ? acceptProbs(missionStats(plans, todayKey())) : {}), [plans]);
@@ -34,7 +39,7 @@ export default function QuestBoard() {
   useEffect(() => {
     const day = todayKey();
     if (!state?.profile || !model || !baseHabits || state.plans[day]) return;
-    twinActions.setPlan(day, generatePlan(model, state.profile, baseHabits, 4, accept));
+    twinActions.setPlan(day, generatePlan(model, state.profile, baseHabits, state.questCount, accept));
   }, [state, model, baseHabits, accept]);
 
   if (!state) return <p className="muted" role="status">불러오는 중…</p>;
@@ -54,10 +59,15 @@ export default function QuestBoard() {
   const stats = missionStats(state.plans, today);
   const doneCount = plan.filter(i => i.done).length;
   const totalMin = plan.reduce((s, i) => s + (i.minutes ?? 0), 0);
-  const gained = plan.filter(i => i.done).reduce((s, i) => s + questGain(i), 0);
   const aiPlan = plan.some(i => i.source === 'ai');
   const coach = state.ai.coach;
   const hasFail = plan.some(i => i.fail && !i.done);
+  // 재분석이면 바로 전 분석과 비교해 "AI가 바꾼 것"을 보여 줍니다. (프로그램이 비교)
+  const okRuns = state.ai.traces.filter(t => t.kind === 'coach' && t.ok && t.output);
+  const prevRun = coach?.mode === 'reanalyze' && okRuns.length >= 2 ? okRuns[1].output : null;
+  const diff = coach && prevRun ? diffRuns(prevRun, coach.result) : null;
+  const wish = wishDraft ?? state.profile.wish ?? '';
+  const wishDirty = wishDraft !== null && wishDraft.trim() !== (state.profile.wish ?? '');
 
   return (
     <div className="stack">
@@ -65,22 +75,20 @@ export default function QuestBoard() {
       <section className="card ai-panel" aria-label="퀘스트 생성 방식">
         {aiPlan && coach ? (
           <>
-            <p className="provenance"><span className="tag ai">AI 생성</span> <b>{coach.model}</b>가 {when(coach.at)}에 만들었어요</p>
-            <p className="muted small">퀘스트의 제목·행동·이유는 AI가 썼고, 효과 점수는 신경망이 계산한 값이에요.</p>
+            <p className="provenance"><span className="tag ai">AI</span> <b>{coach.model}</b> · {when(coach.at)} · 근거 확인 {plan.filter(i => i.source === 'ai' && i.verified).length}/{plan.filter(i => i.source === 'ai').length}</p>
           </>
         ) : (
           <>
-            <p className="provenance"><span className="tag">기본 로직</span> 신경망·규칙으로 고른 퀘스트예요 (AI가 만든 게 아니에요)</p>
+            <p className="provenance"><span className="tag">기본</span> 신경망·규칙으로 고른 퀘스트 (AI 아님)</p>
           </>
         )}
         {ai === null && <p className="muted small" role="status">AI 연결 상태를 확인하는 중…</p>}
-        {ai && !ai.enabled && <p className="notice" role="note">AI가 아직 연결되지 않았어요. 서버에 <b>OPENAI_API_KEY</b>가 설정되면 AI가 맞춤 퀘스트를 만들어 줘요.</p>}
+        {ai && !ai.enabled && <p className="notice" role="note">AI 연결 전이에요 (서버에 OPENAI_API_KEY 필요).</p>}
         {ai?.enabled && (
           <div className="twin-actions">
             <button type="button" className="btn primary" disabled={busy} onClick={() => run(aiPlan ? 'reanalyze' : 'initial')}>
               {busy ? 'AI가 만드는 중… (최대 1분)' : aiPlan ? '🔄 기록 반영해서 재분석' : '✨ AI 맞춤 퀘스트 받기'}
             </button>
-            <Link className="btn" href="/trace">🔎 AI TRACE</Link>
           </div>
         )}
         {error && <p className="msg error" role="alert">{error}</p>}
@@ -88,15 +96,35 @@ export default function QuestBoard() {
           <details className="privacy">
             <summary>코드가 고친 부분 (안전 장치 {coach.adjustments.length}건)</summary>
             <ul>{coach.adjustments.map((a, i) => <li key={i}>{a}</li>)}</ul>
-            <p className="muted small">AI가 낸 결과를 그대로 쓰지 않고, 지난번에 못 한 퀘스트가 더 어려워지지 않도록 프로그램이 제한했어요.</p>
+            <p className="muted small">못 한 퀘스트가 더 어려워지지 않도록 프로그램이 AI 결과를 제한했어요.</p>
           </details>
         )}
+      </section>
+
+      {diff && diffCount(diff) > 0 && (
+        <section className="card" aria-label="AI가 바꾼 것">
+          <h3><span className="tag ai">AI</span> 내 기록을 보고 바꾼 것</h3>
+          <ul className="diff-list">
+            {diff.changed.map(c => <li key={'c' + c.lever}>{leverName(c.lever)} <b>{c.from} → {c.to}</b></li>)}
+            {diff.removed.map(l => <li key={'r' + l}>{leverName(l)} <b>빼고</b></li>)}
+            {diff.added.map(l => <li key={'a' + l}>{leverName(l)} <b>새로</b></li>)}
+          </ul>
+        </section>
+      )}
+
+      <section className="card" aria-label="내 방식">
+        <h3>내 방식 <small className="muted">AI가 가장 먼저 지켜요</small></h3>
+        <textarea className="wish-input" value={wish} maxLength={160} rows={2} onChange={e => setWishDraft(e.target.value)} placeholder="예) 30분 걸을 시간은 없어요. 집에서 할 수 있는 걸로요. 무작정 운동만 시키는 건 싫어요." />
+        <div className="twin-actions">
+          <button type="button" className="btn" disabled={!wishDirty} onClick={() => { twinActions.setWish(wish); setWishDraft(null); }}>저장</button>
+          {ai?.enabled && <button type="button" className="btn primary" disabled={busy} onClick={() => { if (wishDirty) { twinActions.setWish(wish); setWishDraft(null); } void run(aiPlan ? 'reanalyze' : 'initial'); }}>{busy ? 'AI가 만드는 중…' : '✦ 이 방식으로 다시 받기'}</button>}
+        </div>
       </section>
 
       <div className="summary-strip" aria-label="오늘 요약">
         <div><strong>{doneCount}/{plan.length}</strong><small>완료</small></div>
         <div><strong>{totalMin > 0 ? `${totalMin}분` : '–'}</strong><small>예상 시간</small></div>
-        <div><strong>+{gained}점</strong><small>오른 점수</small></div>
+        <div><strong>{dayXp(plan)}/{DAILY_XP_CAP}</strong><small>오늘 XP</small></div>
       </div>
 
       {plan.length === 0 && <p className="card muted">이미 좋은 습관이에요. 체크인으로 기록을 쌓아 보세요.</p>}
@@ -117,7 +145,10 @@ export default function QuestBoard() {
                   <span className={`tag ${isAi ? 'ai' : ''}`}>{isAi ? 'AI' : '기본'}</span>
                   <span className={`tag ${tagClass(diff)}`}>{diff}</span>
                   <span>{minutesLabel(item)}</span>
-                  <span className="tag xp">+{questGain(item)}점</span>
+                  <span className="tag xp">+{xpIfDone(item)}XP</span>
+                  <span className="tag">효과 +{questGain(item)}점</span>
+                  {item.shadow && <span className="tag">⚔️ {shadowDef(item.shadow)?.name}</span>}
+                  {item.micro && <span className="tag easy">작은 단계</span>}
                 </div>
               </div>
             </div>
@@ -177,7 +208,12 @@ export default function QuestBoard() {
                 기록됨: {item.fail.reason}{' '}
                 <button type="button" className="chip" style={{ minHeight: 32, padding: '2px 10px' }} onClick={() => twinActions.clearFail(today, item.id)}>
                   지우기
-                </button>
+                </button>{' '}
+                {!item.micro && (
+                  <button type="button" className="chip" style={{ minHeight: 32, padding: '2px 10px' }} onClick={() => twinActions.shrinkItem(today, item.id)}>
+                    더 작은 단계로 바꾸기
+                  </button>
+                )}
               </p>
             )}
 
@@ -191,7 +227,7 @@ export default function QuestBoard() {
                     </button>
                   ))}
                 </div>
-                <p className="fail-note">이유는 AI MEMORY에 쌓여서 다음 AI 분석에 쓰여요.</p>
+                <p className="fail-note">이유는 다음 AI 분석에 전해져요.</p>
               </div>
             )}
           </article>
@@ -201,7 +237,7 @@ export default function QuestBoard() {
       {hasFail && ai?.enabled && (
         <section className="card" aria-label="재분석 안내">
           <h2>못 한 퀘스트가 있어요</h2>
-          <p className="muted">이유를 AI에게 전해서 더 짧고 쉬운 퀘스트로 다시 받아 볼까요?</p>
+          <p className="muted">이유를 AI에게 전해서 더 작은 퀘스트로 받아 볼까요?</p>
           <button type="button" className="btn primary" disabled={busy} onClick={() => run('reanalyze')}>
             {busy ? 'AI가 다시 만드는 중…' : '🔄 이유를 반영해서 재분석'}
           </button>
@@ -225,7 +261,6 @@ export default function QuestBoard() {
             );
           })}
         </div>
-        <p className="muted small">초록은 완료, 분홍은 못 한 퀘스트예요.</p>
       </section>
     </div>
   );

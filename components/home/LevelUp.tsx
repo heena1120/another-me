@@ -1,7 +1,7 @@
 // 레벨업 연출: 배너 + 색종이. (캐릭터의 춤은 3D 쪽에서 `dance`로 처리합니다)
 const COLORS = ['#ff5c8a', '#ffd35c', '#5aa0ff', '#7ed6a8', '#b79cff'];
 
-export default function LevelUp({ level }: { level: number }) {
+export default function LevelUp({ level, rewards = [] }: { level: number; rewards?: string[] }) {
   return (
     <div className="levelup" role="status" aria-live="assertive">
       {Array.from({ length: 28 }, (_, i) => (
@@ -19,6 +19,7 @@ export default function LevelUp({ level }: { level: number }) {
       <div className="levelup-banner">
         <small>LEVEL UP!</small>
         <strong>Lv.{level}</strong>
+        {rewards.length > 0 && <em>새로 열림: {rewards.join(' · ')}</em>}
       </div>
     </div>
   );

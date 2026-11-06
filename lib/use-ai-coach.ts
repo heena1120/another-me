@@ -25,7 +25,7 @@ export function useAiCoach(twin: TwinInfo) {
       setBusy(true);
       setError(null);
       const today = todayKey();
-      const input = buildCoachInput({ mode, profile, plans: state.plans, archived: state.ai.archivedFails, model, baseHabits, today });
+      const input = buildCoachInput({ mode, profile, plans: state.plans, archived: state.ai.archivedFails, model, baseHabits, today, maxQuests: state.questCount, checkins: state.checkins });
       const base = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, at: new Date().toISOString(), kind: 'coach' as const, mode, inputKinds: inputKindsOf(input), input };
 
       try {

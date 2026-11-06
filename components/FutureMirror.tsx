@@ -97,7 +97,7 @@ export default function FutureMirror() {
           <span className="j-end">👑</span>
         </div>
         <p className="goal-note">
-          지금 습관 그대로면 <b>{pct(nowClose)}</b> → 미션을 지키면 5년 뒤 <b>{pct(endClose)}</b> (Lv.{endLv.level} {endLv.name})
+          지금 습관 그대로면 <b>{pct(nowClose)}</b> → 미션을 지키면 5년 뒤 <b>{pct(endClose)}</b> ({endLv.name}, 근접 {endLv.level}단계)
         </p>
       </section>
 

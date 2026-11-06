@@ -13,6 +13,7 @@ import {
   type Evidence,
   type Insight,
   type LeverId,
+  LEVER_AREA,
   leverName,
 } from './ai-types';
 
@@ -84,7 +85,28 @@ export function validateCoachInput(body: unknown): CoachInput | null {
     },
   };
 
-  return { mode, lifeClass, answers, signals: { areas, levers }, memory };
+  const must = str((o.constraints as Record<string, unknown> | undefined)?.mustCoverArea, 12);
+  const mq = Number((o.constraints as Record<string, unknown> | undefined)?.maxQuests);
+  const maxQuests = Number.isFinite(mq) ? Math.max(1, Math.min(6, Math.round(mq))) : 4;
+  const mustCoverArea = areas.some(a => a.id === must) && levers.some(l => LEVER_AREA[l.id] === must) ? must : null;
+
+  const wish = str((o.preference as Record<string, unknown> | undefined)?.wish, 160) || null;
+  const ck = o.checkin as Record<string, unknown> | null | undefined;
+  const checkin: CoachInput['checkin'] =
+    ck && typeof ck === 'object' && /^\d{4}-\d{2}-\d{2}$/.test(String(ck.date))
+      ? {
+          date: String(ck.date),
+          sleepHours: num(ck.sleepHours, 0, 16) ?? 0,
+          steps: Math.round(num(ck.steps, 0, 60000) ?? 0),
+          exerciseMin: Math.round(num(ck.exerciseMin, 0, 300) ?? 0),
+          caffeineCups: num(ck.caffeineCups, 0, 12) ?? 0,
+          shortformMin: Math.round(num(ck.shortformMin, 0, 600) ?? 0),
+          screenBeforeBed: ck.screenBeforeBed === true,
+          feeling: Math.round(num(ck.feeling, 0, 100) ?? 50),
+        }
+      : null;
+
+  return { mode, lifeClass, answers, signals: { areas, levers }, memory, preference: { wish }, checkin, constraints: { mustCoverArea, maxQuests } };
 }
 
 // ───────── 출력 스키마(OpenAI Structured Outputs, strict) ─────────
@@ -143,6 +165,12 @@ export function evidenceFor(key: string, input: CoachInput): Evidence | null {
   const a = input.answers.find(x => x.key === key);
   if (a) return { key, label: a.question, value: a.answer };
   switch (key) {
+    case 'checkin': {
+      const c = input.checkin;
+      return c ? { key, label: '오늘 체크인(내가 직접 기록)', value: `수면 ${c.sleepHours}시간 · 걸음 ${c.steps.toLocaleString('ko-KR')}보 · 운동 ${c.exerciseMin}분 · 숏폼 ${c.shortformMin}분 · 컨디션 ${c.feeling}점` } : null;
+    }
+    case 'wish':
+      return input.preference?.wish ? { key, label: '내가 AI에게 쓴 한마디', value: input.preference.wish } : null;
     case 'lifeClass':
       return input.lifeClass ? { key, label: 'LIFE CLASS', value: input.lifeClass.name } : null;
     case 'signals.areas': {
@@ -240,9 +268,16 @@ export function validateCoachOutput(raw: unknown, input: CoachInput): { ok: true
       evidence,
       verified: evidence.length > 0,
     });
-    if (quests.length >= 4) break;
+    if (quests.length >= (input.constraints?.maxQuests ?? 4)) break; // 최대 6
   }
   if (quests.length === 0) return { ok: false, reason: 'no_valid_quests' };
+
+  // 점검: 가장 낮은 영역의 퀘스트가 빠졌는지(고치지는 않고 알려 줍니다)
+  const must = input.constraints?.mustCoverArea;
+  if (must && !quests.some(q => LEVER_AREA[q.lever] === must)) {
+    const label = input.signals.areas.find(a => a.id === must)?.label ?? must;
+    adjustments.push(`점검: 점수가 가장 낮은 '${label}' 영역의 퀘스트를 AI가 고르지 않았어요. (프로그램이 요구한 조건이었지만 지켜지지 않아 그대로 표시해요)`);
+  }
 
   const h = (o.hidden_me ?? {}) as Record<string, unknown>;
   const result: CoachResult = {

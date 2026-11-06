@@ -15,7 +15,7 @@ export default function AppHeader() {
       <Link href="/" aria-label="ANOTHER ME 홈">
         <Brand />
       </Link>
-      <Link className="header-link" href="/interview" aria-label="내 정보 다시 입력">
+      <Link className="header-link" href="/status" aria-label="설정과 연결 상태">
         ⚙
       </Link>
     </header>

@@ -3,7 +3,7 @@ import { ACCESSORIES, BACKGROUNDS, BLUSHES, BODY_COLORS, EARS, EYES, MOUTHS, OUT
 
 const ids = (list: readonly { id: string }[]) => list.map(i => i.id);
 
-const FIELDS: Record<Exclude<keyof Avatar, 'name'>, readonly { id: string }[]> = {
+const FIELDS: Record<Exclude<keyof Avatar, 'name' | 'hair' | 'hairColor' | 'pose'>, readonly { id: string }[]> = {
   body: BODY_COLORS,
   shape: SHAPES,
   ears: EARS,

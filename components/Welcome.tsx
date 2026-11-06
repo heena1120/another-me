@@ -5,7 +5,6 @@ import Brand from '@/components/Brand';
 import TwinStage from '@/components/TwinStage';
 import { DEFAULT_AVATAR, type Avatar } from '@/lib/avatar';
 import { useAvatar } from '@/lib/avatar-store';
-import { APP_TAGLINE } from '@/lib/config';
 import { useTwinState } from '@/lib/twin-store';
 
 // 아직 캐릭터가 없는 사람에게 보여 줄 예시 쌍둥이
@@ -28,14 +27,21 @@ export default function Welcome() {
 
       <div>
         <div className="welcome-copy">
-          <h1>캐릭터를 키우는 줄 알았는데,<br />어느새 현실의 내가 바뀌고 있었다</h1>
-          <p>{APP_TAGLINE}</p>
+          <h1>같은 체크리스트로는<br />아무도 바뀌지 않아요</h1>
+          <p>
+            <b>ANOTHER ME</b>는 AI가 <b>내 생활</b>을 읽고 퀘스트를 만들어요. 실패하면 내가 아니라 퀘스트가 작아지고, 트윈은 내가 실제로 한 만큼만 자라요.
+          </p>
+          <ul className="welcome-points" aria-label="핵심">
+            <li>✦ AI가 내 답변에서 숨은 패턴을 찾아요</li>
+            <li>⚔️ 못 하면 퀘스트가 더 작아져요</li>
+            <li>🔮 5년 뒤의 나를 스위치로 비교해요</li>
+          </ul>
         </div>
-        <div style={{ marginTop: 20 }}>
+        <div style={{ marginTop: 16 }}>
           <Link className="btn primary" href={returning ? '/' : '/onboarding'}>
-            {returning ? '계속하기' : '시작하기'}
+            {returning ? '계속하기' : '3분이면 돼요 · 시작하기'}
           </Link>
-          <small>얼굴 사진은 선택이에요. 사진은 서버에 저장하지 않아요.</small>
+          <small>얼굴 사진은 선택 · 서버에 저장하지 않아요</small>
         </div>
       </div>
     </main>

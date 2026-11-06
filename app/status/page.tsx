@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 export const metadata: Metadata = { title: '연결 상태' };
@@ -28,6 +29,19 @@ export default function StatusPage() {
       <header className="page-head">
         <h1>연결 상태</h1>
       </header>
+      <section className="card" aria-label="내 정보">
+        <h2>내 정보</h2>
+        <p className="foot-links" style={{ justifyContent: 'flex-start' }}>
+          <Link href="/interview">✏️ 생활 질문 다시 답하기</Link>
+          <Link href="/create">🎨 트윈 꾸미기</Link>
+        </p>
+        <h2 style={{ marginTop: 16 }}>심사·개발용</h2>
+        <p className="foot-links" style={{ justifyContent: 'flex-start' }}>
+          <Link href="/demo">🧪 A/B 데모 (실제 AI 호출)</Link>
+          <Link href="/trace">🔎 AI TRACE</Link>
+          <Link href="/analysis">🧠 신경망 분석 근거</Link>
+        </p>
+      </section>
       <Suspense fallback={<p role="status"><strong>Supabase:</strong> 확인 중…</p>}>
         <SupabaseStatus />
       </Suspense>

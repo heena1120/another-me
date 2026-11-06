@@ -29,13 +29,13 @@ export default function ScanReveal({ profile }: { profile: Profile }) {
       <div>
         <p className="eyebrow">지금의 나</p>
         <p className="big">{Math.round(lv.closeness * 100)}%</p>
-        <p className="muted">Lv.{lv.level} {lv.name} · 되고 싶은 모습에 가까운 정도</p>
+        <p className="muted">{lv.name} · 근접 {lv.level}단계 (되고 싶은 모습에 가까운 정도)</p>
       </div>
       <Radar items={groups.map(g => ({ label: g.label, score: g.score }))} />
       <p>
         가장 먼저 챙기면 좋은 영역은 <b>{weakest.label}</b>({Math.round(weakest.score)}%)이에요.
       </p>
-      <p className="muted small">질문에 답한 내용을 바탕으로 한 추정이에요. 체크인으로 기록이 쌓이면 더 정확해져요. 의료 진단이 아니에요.</p>
+      <p className="muted small">신경망 추정 · 기록이 쌓이면 정확해져요 · 의료 진단 아님</p>
     </div>
   );
 }

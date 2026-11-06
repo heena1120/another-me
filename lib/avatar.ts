@@ -79,6 +79,42 @@ export const BACKGROUNDS = [
   { id: 'lavender', label: '라벤더', value: '#ece6ff' },
 ] as const;
 
+export const HAIRS = [
+  { id: 'none', label: '없음' },
+  { id: 'sprout', label: '새싹' },
+  { id: 'bangs', label: '앞머리' },
+  { id: 'bun', label: '똥머리' },
+] as const;
+
+export const HAIR_COLORS = [
+  { id: 'brown', label: '갈색', value: '#8a5a44' },
+  { id: 'black', label: '검정', value: '#3a3040' },
+  { id: 'honey', label: '금색', value: '#e8b84d' },
+  { id: 'rose', label: '핑크', value: '#ff8fb8' },
+  { id: 'lilac', label: '보라', value: '#a28bff' },
+  { id: 'mint', label: '민트', value: '#6fd6b5' },
+] as const;
+
+export const POSES = [
+  { id: 'stand', label: '기본' },
+  { id: 'wave', label: '손 흔들기' },
+  { id: 'cheer', label: '만세' },
+] as const;
+
+export type RewardKind = 'accessory' | 'outfit' | 'hair' | 'ears' | 'pose';
+
+/** 보상: 이 레벨이 되면 고를 수 있는 외형. 표에 없으면 처음부터 쓸 수 있습니다. */
+export const UNLOCK: Record<RewardKind, Record<string, number>> = {
+  accessory: { none: 1, ribbon: 1, flower: 2, glasses: 3, scarf: 4, crown: 6 },
+  outfit: { none: 1, tee: 1, stripes: 2, overalls: 4 },
+  hair: { none: 1, sprout: 2, bangs: 3, bun: 5 },
+  ears: { round: 1, tiny: 1, pointy: 2, long: 3 },
+  pose: { stand: 1, wave: 2, cheer: 4 },
+};
+
+export const unlockLevel = (kind: RewardKind, id: string) => UNLOCK[kind][id] ?? 1;
+export const isUnlocked = (kind: RewardKind, id: string, level: number) => unlockLevel(kind, id) <= level;
+
 type Id<T extends readonly { id: string }[]> = T[number]['id'];
 
 export type Avatar = {
@@ -93,6 +129,9 @@ export type Avatar = {
   outfit: Id<typeof OUTFITS>;
   outfitColor: Id<typeof OUTFIT_COLORS>;
   bg: Id<typeof BACKGROUNDS>;
+  hair: Id<typeof HAIRS>;
+  hairColor: Id<typeof HAIR_COLORS>;
+  pose: Id<typeof POSES>;
 };
 
 export type Mood = 'normal' | 'happy' | 'tired';
@@ -109,24 +148,36 @@ export const DEFAULT_AVATAR: Avatar = {
   outfit: 'none',
   outfitColor: 'rose',
   bg: 'cloud',
+  hair: 'none',
+  hairColor: 'brown',
+  pose: 'stand',
 };
 
 const pick = <T extends readonly { id: string }[]>(list: T): Id<T> =>
   list[Math.floor(Math.random() * list.length)].id as Id<T>;
 
-export function randomAvatar(name = ''): Avatar {
+/** 레벨에서 열려 있는 옵션 중에서만 고릅니다. */
+const pickUnlocked = <T extends readonly { id: string }[]>(list: T, kind: RewardKind, level: number): Id<T> => {
+  const open = list.filter(o => isUnlocked(kind, o.id, level));
+  return (open.length ? open : list)[Math.floor(Math.random() * (open.length || list.length))].id as Id<T>;
+};
+
+export function randomAvatar(name = '', level = 1): Avatar {
   return {
     name,
     body: pick(BODY_COLORS),
     shape: pick(SHAPES),
-    ears: pick(EARS),
+    ears: pickUnlocked(EARS, 'ears', level),
     eyes: pick(EYES),
     mouth: pick(MOUTHS),
     blush: pick(BLUSHES),
-    accessory: pick(ACCESSORIES),
-    outfit: pick(OUTFITS),
+    accessory: pickUnlocked(ACCESSORIES, 'accessory', level),
+    outfit: pickUnlocked(OUTFITS, 'outfit', level),
     outfitColor: pick(OUTFIT_COLORS),
     bg: pick(BACKGROUNDS),
+    hair: pickUnlocked(HAIRS, 'hair', level),
+    hairColor: pick(HAIR_COLORS),
+    pose: pickUnlocked(POSES, 'pose', level),
   };
 }
 
@@ -149,6 +200,9 @@ export function sanitizeAvatar(input: unknown): Avatar | null {
     outfit: has(OUTFITS, o.outfit, d.outfit) as Avatar['outfit'],
     outfitColor: has(OUTFIT_COLORS, o.outfitColor, d.outfitColor) as Avatar['outfitColor'],
     bg: has(BACKGROUNDS, o.bg, d.bg) as Avatar['bg'],
+    hair: has(HAIRS, o.hair, d.hair) as Avatar['hair'],
+    hairColor: has(HAIR_COLORS, o.hairColor, d.hairColor) as Avatar['hairColor'],
+    pose: has(POSES, o.pose, d.pose) as Avatar['pose'],
   };
 }
 

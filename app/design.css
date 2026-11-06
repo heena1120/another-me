@@ -5,11 +5,11 @@
    ═════════════════════════════════════════════════════════════ */
 :root {
   /* 색: 라벤더 · 핑크 · 민트 파스텔 + 잉크 */
-  --am-bg: #f8f6ff;
+  --am-bg: #ffffff;
   --am-surface: #ffffff;
   --am-ink: #2a2540;
   --am-muted: #7a7592;
-  --am-line: #e9e5f5;
+  --am-line: #efecf6;
   --am-violet: #8b7bff;
   --am-violet-ink: #5846d6;
   --am-violet-soft: #efebff;
@@ -48,7 +48,7 @@
 }
 
 body {
-  background: linear-gradient(180deg, #f8f6ff 0%, #fff8fc 100%) fixed;
+  background: #ffffff;
   color: var(--am-ink);
   font-size: 15px;
 }
@@ -1421,3 +1421,137 @@ body {
 .summary-text {
   overflow-wrap: anywhere;
 }
+
+/* ===== PART 5: XP, SHADOW, WORLD, PARALLEL ===== */
+.chip.locked { opacity: 0.5; cursor: not-allowed; }
+.levelup-banner em { display: block; font-style: normal; font-size: 12px; margin-top: 4px; max-width: 260px; }
+.shadow-top { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 12px; align-items: center; }
+.blob { width: 84px; height: 84px; }
+.shadow-card h3 { margin: 0 0 2px; }
+.world-svg { width: 100%; height: auto; display: block; border-radius: 16px; }
+.world-thing { cursor: pointer; }
+.world-twin { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px; align-items: center; margin-top: 8px; }
+.world-stage { width: 110px; height: 150px; overflow: hidden; border-radius: 14px; }
+.speech { background: #fff; border: 2px solid #e4dcff; border-radius: 14px; padding: 10px 12px; margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+.parallel-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; text-align: center; }
+.parallel-pair > div { display: grid; gap: 2px; overflow: hidden; }
+.parallel-pair .good strong { color: #2f9e6f; }
+
+/* 탭 5개: 한 줄에 균등하게 */
+.nav { grid-template-columns: repeat(5, minmax(0, 1fr)); padding-left: 4px; padding-right: 4px; }
+.nav a { padding: 6px 0; font-size: 10.5px; letter-spacing: -0.2px; }
+.world-thing:focus-visible { outline: none; }
+.world-thing:focus-visible rect { stroke: #8f77d9; stroke-width: 2; stroke-dasharray: 4 3; }
+.demo-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.demo-steps li { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--am-muted, #7a7592); }
+.demo-steps li span { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #efe9ff; font-size: 12px; flex: none; }
+.demo-steps li.done { color: inherit; }
+.demo-steps li.done span { background: #7ed6a8; color: #fff; }
+
+
+/* ===== AI 강조 · 말풍선 · FUTURE SWITCH · 접는 설명 ===== */
+.tag.ai::before { content: '✦ '; }
+.twin-stage { position: relative; }
+.twin-bubble {
+  position: absolute; left: 12px; right: 12px; bottom: 12px;
+  display: flex; gap: 8px; align-items: flex-start;
+  background: #ffffffee; backdrop-filter: blur(6px);
+  border-radius: 16px; padding: 10px 12px;
+  font-size: 13px; line-height: 1.45; font-weight: 600; color: var(--am-ink, #2b2540);
+  box-shadow: var(--am-shadow-sm); text-decoration: none;
+}
+.twin-bubble .tag { flex: none; margin-top: 1px; }
+.twin-bubble .txt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.twin-bubble::after { content: ''; position: absolute; top: -8px; left: 28px; border: 8px solid transparent; border-top: 0; border-bottom-color: #ffffffee; }
+.future-badge { font-size: 11px; max-width: 60%; text-align: right; }
+.twin-stage.future-off { filter: saturate(0.75); }
+.fswitch { display: grid; gap: 6px; }
+.fswitch-label { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; color: var(--am-violet-ink); }
+.seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; padding: 3px; border-radius: 999px; background: var(--am-violet-soft); }
+.seg button { border: 0; background: transparent; border-radius: 999px; min-height: 38px; font-weight: 800; font-size: 12px; color: var(--am-muted); }
+.seg button[aria-pressed='true'] { background: #fff; color: var(--am-violet-ink); box-shadow: var(--am-shadow-sm); }
+.seg button.on[aria-pressed='true'] { background: var(--am-grad); color: #fff; }
+.ai-strip { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--am-muted); margin: -4px 0 10px; text-decoration: none; }
+.how { font-size: 13px; color: var(--am-muted); margin-top: 6px; }
+.how summary { cursor: pointer; font-weight: 700; color: var(--am-violet-ink); list-style: none; }
+.how summary::before { content: '?'; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--am-violet-soft); font-size: 11px; margin-right: 6px; }
+.how ul { padding-left: 18px; margin: 8px 0 0; display: grid; gap: 4px; }
+.welcome-points { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 6px; font-size: 13px; font-weight: 700; color: var(--am-violet-ink); }
+.reveal-ai .insight { background: var(--am-violet-soft); border-radius: 12px; padding: 10px 12px; }
+.reveal-ai .insight p { margin: 0 0 6px; font-size: 14px; }
+.shimmer-box { position: relative; display: grid; gap: 4px; padding: 12px; border-radius: 12px; background: var(--am-violet-soft); overflow: hidden; }
+.shimmer-box p { margin: 0; }
+.shimmer-box i { display: block; height: 10px; border-radius: 6px; margin-top: 4px; background: linear-gradient(90deg, #e4dcff 25%, #f6f2ff 50%, #e4dcff 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+.shimmer-box i:nth-of-type(2) { width: 80%; } .shimmer-box i:nth-of-type(3) { width: 60%; }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+.twin-card .twin-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+
+/* ===== 홈: 포켓몬 GO 느낌의 풀블리드 스테이지 ===== */
+.page.home { padding-top: 0; }
+.go { display: grid; gap: 10px; }
+.go-stage {
+  position: relative;
+  height: min(60dvh, 540px);
+  min-height: 400px;
+  margin: 0 -20px;
+  border-radius: 0 0 32px 32px;
+  overflow: hidden;
+  background: radial-gradient(120% 80% at 50% 100%, #efeaff 0%, #f7f4ff 45%, #ffffff 100%);
+}
+.go-stage > div:first-child { height: 100%; }
+.go-stage.future-off { filter: saturate(0.7); }
+.go-profile {
+  position: absolute; top: 12px; left: 14px;
+  display: grid; gap: 3px; min-width: 150px; max-width: 62%;
+  padding: 10px 14px; border-radius: 18px;
+  background: #ffffffee; backdrop-filter: blur(8px); box-shadow: var(--am-shadow-sm);
+}
+.go-profile strong { font-size: 18px; letter-spacing: -0.3px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.go-profile span { font-size: 11px; font-weight: 800; color: var(--am-violet-ink); }
+.go-xp { display: block; height: 6px; border-radius: 999px; background: var(--am-violet-soft); overflow: hidden; }
+.go-xp b { display: block; height: 100%; border-radius: 999px; background: var(--am-grad); }
+.go-side { position: absolute; top: 12px; right: 14px; display: grid; gap: 8px; }
+.go-btn {
+  display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%;
+  background: #ffffffee; backdrop-filter: blur(8px); box-shadow: var(--am-shadow-sm);
+  font-size: 20px; text-decoration: none; border: 1px solid var(--am-line);
+}
+.go-future-badge {
+  position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%);
+  padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap;
+  background: var(--am-grad); color: #fff; box-shadow: var(--am-shadow-sm);
+}
+.go-switch { display: grid; gap: 6px; padding: 0 2px; }
+.stepper { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--am-line); border-radius: 999px; padding: 2px; background: #fff; }
+.stepper button { width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--am-violet-soft); color: var(--am-violet-ink); font-size: 18px; font-weight: 800; line-height: 1; }
+.stepper button:disabled { opacity: 0.35; }
+.stepper span { min-width: 44px; text-align: center; font-size: 12px; font-weight: 800; }
+
+.go-stage { margin-inline: max(calc(50% - 50vw), -20px); }
+
+
+/* ===== 내 방식 · HIDDEN ME 압축 · AI가 바꾼 것 ===== */
+.wish-box { display: grid; gap: 6px; margin-top: 12px; }
+.wish-box > span { font-size: 13px; font-weight: 800; }
+.wish-box small { font-weight: 600; color: var(--am-muted); }
+.wish-box textarea, .wish-input { width: 100%; box-sizing: border-box; border: 1px solid var(--am-line); border-radius: 14px; padding: 10px 12px; font: inherit; font-size: 14px; resize: none; background: #fff; }
+.wish-box textarea:focus, .wish-input:focus { outline: 2px solid var(--am-violet); border-color: transparent; }
+.hm-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.hm-row { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px; align-items: start; background: var(--am-violet-soft); border-radius: 14px; padding: 10px 12px; }
+.hm-ico { font-size: 20px; line-height: 1.2; }
+.hm-row small { display: block; font-size: 11px; font-weight: 800; color: var(--am-violet-ink); margin-bottom: 2px; }
+.hm-row p { margin: 0 0 4px; font-size: 14px; line-height: 1.45; }
+.diff-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+.diff-list b { color: var(--am-violet-ink); }
+
+.ai-panel .twin-actions { grid-template-columns: 1fr; }
+
+
+/* 홈: 오늘 체크인 CTA */
+.checkin-cta { display: grid; gap: 4px; padding: 14px 16px; border-radius: 18px; text-decoration: none; color: #fff; background: var(--am-grad); box-shadow: var(--am-shadow); }
+.checkin-cta strong { font-size: 16px; }
+.checkin-cta strong small { font-weight: 700; opacity: 0.85; margin-left: 6px; }
+.checkin-cta span { font-size: 12.5px; opacity: 0.95; line-height: 1.4; }
+.checkin-done { margin: 0; padding: 10px 14px; border-radius: 14px; background: #eafbf1; color: #1f7a4d; font-size: 13px; font-weight: 700; }
