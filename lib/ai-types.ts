@@ -3,6 +3,21 @@
 export const LEVER_IDS = ['sleep', 'caffeine', 'screen', 'shortform', 'walk', 'stretch', 'exercise', 'water', 'meals', 'outdoor'] as const;
 export type LeverId = (typeof LEVER_IDS)[number];
 
+/** 화면에 보여 줄 퀘스트 종류 이름(내부 id를 그대로 노출하지 않기 위해) */
+export const LEVER_NAMES: Record<LeverId, string> = {
+  sleep: '수면(일찍 눕기)',
+  caffeine: '카페인',
+  screen: '자기 전 화면',
+  shortform: '숏폼',
+  walk: '걷기',
+  stretch: '스트레칭',
+  exercise: '운동',
+  water: '물 마시기',
+  meals: '식사 시간',
+  outdoor: '바깥 활동',
+};
+export const leverName = (id: string) => (LEVER_NAMES as Record<string, string>)[id] ?? id;
+
 export const DIFFICULTIES = ['쉬움', '보통', '도전'] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
@@ -16,7 +31,7 @@ export const ANSWER_KEYS = ['job', 'walk', 'sleep', 'sleepWhy', 'caffeine', 'sho
 export const EVIDENCE_KEYS = [...ANSWER_KEYS, 'lifeClass', 'memory.failed', 'memory.done', 'memory.failTimes', 'memory.preferred', 'memory.feedback', 'signals.areas'] as const;
 export type EvidenceKey = (typeof EVIDENCE_KEYS)[number];
 
-export const PROMPT_VERSIONS = { coach: 'coach-v1', photo: 'photo-v1', future: 'future-v1' } as const;
+export const PROMPT_VERSIONS = { coach: 'coach-v2', photo: 'photo-v1', future: 'future-v1' } as const;
 
 // ───────── AI에게 보내는 입력 ─────────
 export type CoachMemory = {

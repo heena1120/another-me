@@ -13,6 +13,7 @@ import {
   type Evidence,
   type Insight,
   type LeverId,
+  leverName,
 } from './ai-types';
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max) : '');
@@ -145,17 +146,17 @@ export function evidenceFor(key: string, input: CoachInput): Evidence | null {
     case 'lifeClass':
       return input.lifeClass ? { key, label: 'LIFE CLASS', value: input.lifeClass.name } : null;
     case 'signals.areas': {
-      const w = [...input.signals.areas].sort((x, y) => x.score - y.score)[0];
-      return w ? { key, label: '프로그램이 계산한 영역 점수', value: `${w.label} ${w.score}%가 가장 낮음` } : null;
+      const all = input.signals.areas;
+      return all.length ? { key, label: '프로그램이 계산한 영역 점수(높을수록 이상적)', value: all.map(a => `${a.label} ${a.score}%`).join(' · ') } : null;
     }
     case 'memory.failed':
-      return input.memory.failed.length ? { key, label: '못 한 기록', value: input.memory.failed.map(f => `${f.lever}(${f.reason || '이유 없음'})`).join(', ') } : null;
+      return input.memory.failed.length ? { key, label: '못 한 기록', value: input.memory.failed.map(f => `${leverName(f.lever)}(${f.reason || '이유 없음'})`).join(', ') } : null;
     case 'memory.done':
-      return input.memory.done.length ? { key, label: '지난 기록', value: input.memory.done.map(d => `${d.lever} ${d.done}/${d.total}`).join(', ') } : null;
+      return input.memory.done.length ? { key, label: '지난 기록', value: input.memory.done.map(d => `${leverName(d.lever)} ${d.done}/${d.total}`).join(', ') } : null;
     case 'memory.failTimes':
       return input.memory.failTimes.length ? { key, label: '자주 못 한 시간대', value: input.memory.failTimes.map(t => `${t.bucket} ${t.count}회`).join(', ') } : null;
     case 'memory.preferred':
-      return input.memory.preferred.length ? { key, label: '자주 해낸 퀘스트', value: input.memory.preferred.join(', ') } : null;
+      return input.memory.preferred.length ? { key, label: '자주 해낸 퀘스트', value: input.memory.preferred.map(leverName).join(', ') } : null;
     case 'memory.feedback':
       return input.memory.feedback.good + input.memory.feedback.bad > 0 ? { key, label: '추천 만족도', value: `좋아요 ${input.memory.feedback.good}, 별로예요 ${input.memory.feedback.bad}` } : null;
     default:
@@ -209,14 +210,14 @@ export function validateCoachOutput(raw: unknown, input: CoachInput): { ok: true
       if (last.minutes && last.minutes > 0) {
         const cap = Math.max(1, Math.floor(last.minutes * 0.7));
         if (minutes > cap) {
-          adjustments.push(`${q.lever}: 지난번 ${last.minutes}분짜리를 못 해서, 시간을 ${minutes}분에서 ${cap}분으로 코드가 제한했어요.`);
+          adjustments.push(`${leverName(q.lever)}: 지난번 ${last.minutes}분짜리를 못 해서, 시간을 ${minutes}분에서 ${cap}분으로 코드가 제한했어요.`);
           minutes = cap;
         }
       }
       const lastRank = RANK[(last.difficulty as Difficulty) ?? '보통'] ?? 1;
       if (RANK[difficulty] >= lastRank && lastRank > 0) {
         const lowered = DIFFICULTIES[lastRank - 1];
-        adjustments.push(`${q.lever}: 지난번 '${last.difficulty ?? '보통'}' 난이도를 못 해서, 난이도를 '${difficulty}' → '${lowered}'(으)로 코드가 낮췄어요.`);
+        adjustments.push(`${leverName(q.lever)}: 지난번 '${last.difficulty ?? '보통'}' 난이도를 못 해서, 난이도를 '${difficulty}' → '${lowered}'(으)로 코드가 낮췄어요.`);
         difficulty = lowered;
       }
     }
